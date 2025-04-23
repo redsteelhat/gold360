@@ -26,9 +26,90 @@ const options: swaggerJSDoc.Options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
+          description: 'Enter JWT token with Bearer prefix. Example: "Bearer eyJhbGciOiJIUzI1..."',
         },
       },
       schemas: {
+        // Auth schemas
+        RegisterRequest: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              description: "User's full name",
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: "User's email address",
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              description: "User's password (min 6 characters)",
+            },
+            role: {
+              type: 'string',
+              enum: ['admin', 'manager', 'staff', 'customer'],
+              description: 'User role (optional)',
+            },
+          },
+          required: ['name', 'email', 'password'],
+        },
+        LoginRequest: {
+          type: 'object',
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              description: "User's email address",
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              description: "User's password",
+            },
+          },
+          required: ['email', 'password'],
+        },
+        AuthResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              description: 'Success flag',
+            },
+            message: {
+              type: 'string',
+              description: 'Response message',
+            },
+            token: {
+              type: 'string',
+              description: 'JWT token for authorization',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'integer',
+                  description: 'User ID',
+                },
+                name: {
+                  type: 'string',
+                  description: "User's name",
+                },
+                email: {
+                  type: 'string',
+                  description: "User's email",
+                },
+                role: {
+                  type: 'string',
+                  description: "User's role",
+                },
+              },
+            },
+          },
+        },
         // Model schemas will be defined here
         StockTransfer: {
           type: 'object',

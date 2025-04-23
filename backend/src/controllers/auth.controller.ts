@@ -3,9 +3,76 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models';
 
+/**
+ * @swagger
+ * tags:
+ *   name: Authentication
+ *   description: User authentication operations
+ */
+
 class AuthController {
   /**
-   * Register a new user
+   * @swagger
+   * /api/auth/register:
+   *   post:
+   *     summary: Register a new user
+   *     tags: [Authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - name
+   *               - email
+   *               - password
+   *             properties:
+   *               name:
+   *                 type: string
+   *                 description: User's full name
+   *               email:
+   *                 type: string
+   *                 format: email
+   *                 description: User's email address
+   *               password:
+   *                 type: string
+   *                 format: password
+   *                 description: User's password (min 6 characters)
+   *               role:
+   *                 type: string
+   *                 enum: [admin, manager, staff, customer]
+   *                 default: customer
+   *                 description: User role (optional, defaults to customer)
+   *     responses:
+   *       201:
+   *         description: User registered successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *                 token:
+   *                   type: string
+   *                 user:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *                     name:
+   *                       type: string
+   *                     email:
+   *                       type: string
+   *                     role:
+   *                       type: string
+   *       400:
+   *         description: Email already in use or invalid input
+   *       500:
+   *         description: Server error
    */
   public register = async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -52,7 +119,60 @@ class AuthController {
   }
 
   /**
-   * Login user
+   * @swagger
+   * /api/auth/login:
+   *   post:
+   *     summary: Login user and get token
+   *     tags: [Authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - email
+   *               - password
+   *             properties:
+   *               email:
+   *                 type: string
+   *                 format: email
+   *                 description: User's email address
+   *               password:
+   *                 type: string
+   *                 format: password
+   *                 description: User's password
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *                 token:
+   *                   type: string
+   *                 user:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *                     name:
+   *                       type: string
+   *                     email:
+   *                       type: string
+   *                     role:
+   *                       type: string
+   *       400:
+   *         description: Missing required fields
+   *       401:
+   *         description: Invalid credentials
+   *       500:
+   *         description: Server error
    */
   public login = async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -113,7 +233,38 @@ class AuthController {
   }
 
   /**
-   * Get current user
+   * @swagger
+   * /api/auth/me:
+   *   get:
+   *     summary: Get current user profile
+   *     tags: [Authentication]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current user data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 user:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *                     name:
+   *                       type: string
+   *                     email:
+   *                       type: string
+   *                     role:
+   *                       type: string
+   *       401:
+   *         description: Not authenticated
+   *       500:
+   *         description: Server error
    */
   public getMe = async (req: Request, res: Response): Promise<Response> => {
     try {
