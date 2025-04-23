@@ -50,8 +50,8 @@ export const getAllAlerts = async (req: Request, res: Response) => {
     const alerts = await StockAlert.findAll({
       where: whereClause,
       include: [
-        { model: Product, attributes: ['id', 'name', 'sku', 'description'] },
-        { model: Warehouse, attributes: ['id', 'name', 'location'] }
+        { model: Product, as: 'Product', attributes: ['id', 'name', 'sku', 'description'] },
+        { model: Warehouse, as: 'Warehouse', attributes: ['id', 'name', 'location'] }
       ],
       order: [['createdAt', 'DESC']]
     });
@@ -89,8 +89,8 @@ export const getAlertById = async (req: Request, res: Response) => {
     
     const alert = await StockAlert.findByPk(id, {
       include: [
-        { model: Product, attributes: ['id', 'name', 'sku', 'description'] },
-        { model: Warehouse, attributes: ['id', 'name', 'location'] }
+        { model: Product, as: 'Product', attributes: ['id', 'name', 'sku', 'description'] },
+        { model: Warehouse, as: 'Warehouse', attributes: ['id', 'name', 'location'] }
       ]
     });
     
@@ -325,8 +325,8 @@ export const checkAndCreateAlerts = async (req: Request, res: Response) => {
     // Get all inventory items
     const inventoryItems = await Inventory.findAll({
       include: [
-        { model: Product, attributes: ['id', 'name', 'sku'] },
-        { model: Warehouse, attributes: ['id', 'name'] }
+        { model: Product, as: 'product', attributes: ['id', 'name', 'sku'] },
+        { model: Warehouse, as: 'warehouse', attributes: ['id', 'name'] }
       ]
     });
     
@@ -414,8 +414,8 @@ export const getAlertsDashboard = async (req: Request, res: Response) => {
     const recentAlerts = await StockAlert.findAll({
       where: { status: 'active' },
       include: [
-        { model: Product, attributes: ['id', 'name', 'sku'] },
-        { model: Warehouse, attributes: ['id', 'name'] }
+        { model: Product, as: 'Product', attributes: ['id', 'name', 'sku'] },
+        { model: Warehouse, as: 'Warehouse', attributes: ['id', 'name'] }
       ],
       order: [['createdAt', 'DESC']],
       limit: 5

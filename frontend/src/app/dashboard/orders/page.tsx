@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -37,26 +37,35 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<Order['status'] | 'all'>('all');
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const data = await getAllOrders();
-        setOrders(data);
-        setFilteredOrders(data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        toast({
-          title: 'Hata',
-          description: 'Siparişler yüklenirken bir hata oluştu.',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getAllOrders();
+      setOrders(data);
+      setFilteredOrders(data);
+    } catch (error: any) {
+      console.error('Error fetching orders:', error);
+      let errorMessage = 'Siparişler yüklenirken bir hata oluştu.';
+      
+      if (error?.response?.status === 401) {
+        errorMessage = 'Oturum süresi dolmuş olabilir. Lütfen tekrar giriş yapın.';
+      } else if (error?.noAuth) {
+        errorMessage = 'Bu işlemi gerçekleştirmek için giriş yapmalısınız.';
       }
-    };
-
-    fetchOrders();
+      
+      toast({
+        title: 'Hata',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   useEffect(() => {
     if (filter === 'all') {

@@ -15,6 +15,19 @@ export const authMiddleware = async (
   res: Response, 
   next: NextFunction
 ): Promise<void | Response> => {
+  // Development mode bypass (only for development)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (isDevelopment && process.env.BYPASS_AUTH === 'true') {
+    console.log('Auth middleware bypassed in development mode');
+    // Add a default user for development
+    (req as any).user = {
+      id: 1,
+      email: 'dev@example.com',
+      role: 'admin'
+    };
+    return next();
+  }
+
   // Get token from header
   const authHeader = req.headers.authorization;
   

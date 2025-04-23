@@ -1,28 +1,21 @@
 import { Router } from 'express';
+import inventoryController from '../controllers/inventory.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Placeholder for inventory controller functions
-// These will need to be implemented
-router.get('/', authMiddleware, (req, res) => {
-  res.status(200).json({ message: 'Get inventory status' });
-});
+// Apply auth middleware to all inventory routes
+router.use(authMiddleware);
 
-router.post('/stock-in', authMiddleware, (req, res) => {
-  res.status(201).json({ message: 'Stock in items', data: req.body });
-});
-
-router.post('/stock-out', authMiddleware, (req, res) => {
-  res.status(201).json({ message: 'Stock out items', data: req.body });
-});
-
-router.get('/low-stock', authMiddleware, (req, res) => {
-  res.status(200).json({ message: 'Get low stock items' });
-});
-
-router.get('/history', authMiddleware, (req, res) => {
-  res.status(200).json({ message: 'Get inventory history' });
-});
+// Inventory routes
+router.get('/', inventoryController.getAllInventory);
+router.get('/:id', inventoryController.getInventoryById);
+router.post('/', inventoryController.createInventoryItem);
+router.put('/:id', inventoryController.updateInventoryItem);
+router.delete('/:id', inventoryController.deleteInventoryItem);
+router.post('/:id/adjust', inventoryController.adjustInventory);
+router.get('/barcode/:barcode', inventoryController.getInventoryByBarcode);
+router.get('/rfid/:rfidTag', inventoryController.getInventoryByRfid);
+router.post('/log-stock-check', inventoryController.logStockCheck);
 
 export default router; 

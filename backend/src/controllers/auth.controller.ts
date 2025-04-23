@@ -141,7 +141,7 @@ class AuthController {
   /**
    * Generate JWT token
    */
-  public generateToken = (user: any): string => {
+  private generateToken = (user: any): string => {
     const payload = {
       id: user.id,
       email: user.email,

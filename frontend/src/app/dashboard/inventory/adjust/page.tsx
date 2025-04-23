@@ -1,606 +1,418 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
-  CardFooter, 
   CardHeader, 
-  CardTitle 
+  CardTitle, 
+  CardDescription, 
+  CardFooter 
 } from '@/components/ui/card';
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormDescription, 
+  FormMessage 
+} from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  Loader2, 
+  ChevronLeft, 
+  Search, 
+  Barcode, 
+  Check, 
+  X 
+} from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, Plus, Search, Trash } from 'lucide-react';
-import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { InventoryItem, adjustInventory, getInventoryById, getInventoryByBarcode } from '@/utils/inventoryService';
 
-// Types
-interface Warehouse {
-  id: number;
-  name: string;
-  location: string;
-}
+// Form schema
+const adjustmentSchema = z.object({
+  quantity: z.number().min(0, "Quantity must be a positive number"),
+  adjustmentType: z.enum(['add', 'subtract', 'set'], {
+    required_error: "Please select an adjustment type",
+  }),
+  reason: z.string().optional(),
+});
 
-interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  category: string;
-}
+type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
 
-interface InventoryItem {
-  productId: number;
-  product: Product;
-  currentStock: number;
-  newStock: number;
-  difference: number;
-  reason: string;
-}
-
-const adjustmentReasons = [
-  { value: 'physical_count', label: 'Fiziksel Sayım' },
-  { value: 'damaged', label: 'Hasarlı Ürün' },
-  { value: 'expired', label: 'Son Kullanma Tarihi Geçmiş' },
-  { value: 'system_error', label: 'Sistem Hatası' },
-  { value: 'theft', label: 'Kayıp/Çalıntı' },
-  { value: 'returned', label: 'İade' },
-  { value: 'other', label: 'Diğer' },
-];
-
-const StockAdjustmentPage = () => {
+const InventoryAdjustPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
-  const [formData, setFormData] = useState({
-    warehouseId: '',
-    reason: '',
-    notes: '',
-    items: [] as InventoryItem[]
-  });
+  const [inventoryItem, setInventoryItem] = useState<InventoryItem | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [barcode, setBarcode] = useState('');
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const inventoryId = searchParams.get('id');
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  // Form definition
+  const form = useForm<AdjustmentFormValues>({
+    resolver: zodResolver(adjustmentSchema),
+    defaultValues: {
+      quantity: 0,
+      adjustmentType: 'add',
+      reason: '',
+    },
+  });
 
-  // Depoları yükle
+  // Load inventory item if ID is provided
   useEffect(() => {
-    const fetchWarehouses = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/warehouses`);
-        if (!response.ok) throw new Error('Depolar yüklenirken hata oluştu');
-        
-        const data = await response.json();
-        setWarehouses(data);
-      } catch (error) {
-        console.error('Depo yükleme hatası:', error);
-        toast({
-          title: 'Hata',
-          description: 'Depolar yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.',
-          variant: 'destructive',
-        });
-      }
-    };
+    if (inventoryId) {
+      fetchInventoryItem(parseInt(inventoryId));
+    }
+  }, [inventoryId]);
 
-    fetchWarehouses();
-  }, [toast]);
-
-  // Depo değiştiğinde envanter bilgilerini yükle
+  // Focus on barcode input when scanning mode is activated
   useEffect(() => {
-    const fetchInventory = async () => {
-      if (!formData.warehouseId) return;
-      
-      setIsLoadingInventory(true);
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/warehouses/${formData.warehouseId}/inventory`);
-        if (!response.ok) throw new Error('Envanter bilgileri yüklenirken hata oluştu');
-        
-        const data = await response.json();
-        
-        // Ürün bilgilerini de içeren envanter öğeleri oluştur
-        const items = data.map((item: any) => ({
-          productId: item.productId,
-          product: item.product,
-          currentStock: item.quantity,
-          newStock: item.quantity,
-          difference: 0,
-          reason: ''
-        }));
-        
-        setInventoryItems(items);
-        setProducts(items.map((item: InventoryItem) => item.product));
-        setFilteredProducts(items.map((item: InventoryItem) => item.product));
-      } catch (error) {
-        console.error('Envanter yükleme hatası:', error);
-        toast({
-          title: 'Hata',
-          description: 'Envanter bilgileri yüklenirken bir hata oluştu. Lütfen tekrar deneyin.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoadingInventory(false);
-      }
-    };
-
-    fetchInventory();
-  }, [formData.warehouseId, toast]);
-
-  // Ürün araması
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredProducts(products);
-      return;
+    if (scanningBarcode && barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
     }
-    
-    const query = searchQuery.toLowerCase();
-    const filtered = products.filter(
-      product => 
-        product.name.toLowerCase().includes(query) || 
-        product.sku.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
-    );
-    
-    setFilteredProducts(filtered);
-  }, [searchQuery, products]);
+  }, [scanningBarcode]);
 
-  // Form değişiklikleri
-  const handleChange = (field: string, value: string) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    });
-  };
-
-  // Ürün ayarlama
-  const handleAddItem = (productId: number) => {
-    const inventoryItem = inventoryItems.find(item => item.productId === productId);
-    if (!inventoryItem) return;
-    
-    // Ürün zaten ekli mi kontrol et
-    if (formData.items.some(item => item.productId === productId)) {
-      toast({
-        title: 'Uyarı',
-        description: 'Bu ürün zaten ayarlama listesine eklenmiş.',
-        variant: 'default',
-      });
-      return;
-    }
-    
-    setFormData({
-      ...formData,
-      items: [...formData.items, { ...inventoryItem }]
-    });
-  };
-
-  // Ürün kaldır
-  const handleRemoveItem = (productId: number) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter(item => item.productId !== productId)
-    });
-  };
-
-  // Yeni stok miktarı güncelleme
-  const handleStockChange = (productId: number, newValue: number) => {
-    const updatedItems = formData.items.map(item => {
-      if (item.productId === productId) {
-        const newStock = newValue;
-        const difference = newStock - item.currentStock;
-        return { ...item, newStock, difference };
-      }
-      return item;
-    });
-    
-    setFormData({
-      ...formData,
-      items: updatedItems
-    });
-  };
-
-  // Ürün uyarlama sebebi değiştirme
-  const handleItemReasonChange = (productId: number, reason: string) => {
-    const updatedItems = formData.items.map(item => {
-      if (item.productId === productId) {
-        return { ...item, reason };
-      }
-      return item;
-    });
-    
-    setFormData({
-      ...formData,
-      items: updatedItems
-    });
-  };
-
-  // Form gönderimi
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.warehouseId) {
-      toast({
-        title: 'Hata',
-        description: 'Lütfen bir depo seçin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    if (!formData.reason) {
-      toast({
-        title: 'Hata',
-        description: 'Lütfen genel bir ayarlama sebebi seçin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    if (formData.items.length === 0) {
-      toast({
-        title: 'Hata',
-        description: 'Lütfen en az bir ürün ekleyin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // Tüm ürünlerde değişiklik var mı kontrol et
-    const hasChanges = formData.items.some(item => item.difference !== 0);
-    if (!hasChanges) {
-      toast({
-        title: 'Uyarı',
-        description: 'Hiçbir üründe stok değişikliği yapılmamış.',
-        variant: 'default',
-      });
-      return;
-    }
-    
-    // Tüm ürünlerin sebebi var mı kontrol et
-    const missingReasons = formData.items.filter(item => item.difference !== 0 && !item.reason);
-    if (missingReasons.length > 0) {
-      toast({
-        title: 'Hata',
-        description: 'Tüm stok değişiklikleri için bir sebep belirtmelisiniz.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+  const fetchInventoryItem = async (id: number) => {
     try {
-      // API'ye gönderilecek veriyi hazırla
-      const adjustmentData = {
-        warehouseId: parseInt(formData.warehouseId),
-        reason: formData.reason,
-        notes: formData.notes,
-        items: formData.items.filter(item => item.difference !== 0).map(item => ({
-          productId: item.productId,
-          currentStock: item.currentStock,
-          newStock: item.newStock,
-          reason: item.reason
-        }))
-      };
-      
-      // Stock adjustment API isteği
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock-adjustments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(adjustmentData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Stok ayarlaması oluşturulurken bir hata oluştu');
-      }
-      
-      toast({
-        title: 'Başarılı',
-        description: 'Stok ayarlaması başarıyla oluşturuldu.',
-      });
-      
-      // Envanter sayfasına yönlendir
-      router.push('/dashboard/inventory');
+      setLoading(true);
+      const item = await getInventoryById(id);
+      setInventoryItem(item);
     } catch (error) {
-      console.error('Stok ayarlama hatası:', error);
+      console.error('Error fetching inventory item:', error);
       toast({
-        title: 'Hata',
-        description: 'Stok ayarlaması yapılırken bir hata oluştu. Lütfen tekrar deneyin.',
+        title: 'Error',
+        description: 'Could not load inventory item. Please try again.',
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
+    }
+  };
+
+  const handleBarcodeSearch = async () => {
+    if (!barcode.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a barcode to search',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const item = await getInventoryByBarcode(barcode);
+      setInventoryItem(item);
+      setScanningBarcode(false);
+    } catch (error) {
+      console.error('Error fetching inventory by barcode:', error);
+      toast({
+        title: 'Error',
+        description: 'No inventory item found with this barcode',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleBarcodeSearch();
+    }
+  };
+
+  const onSubmit = async (data: AdjustmentFormValues) => {
+    if (!inventoryItem) {
+      toast({
+        title: 'Error',
+        description: 'No inventory item selected',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      // Hardcoded userId for demo - in real app, get from auth context
+      const userId = 1;
+      
+      await adjustInventory(inventoryItem.id, {
+        ...data,
+        userId,
+      });
+      
+      toast({
+        title: 'Success',
+        description: 'Inventory adjusted successfully',
+      });
+      
+      // Redirect back to inventory page
+      router.push('/dashboard/inventory');
+    } catch (error) {
+      console.error('Error adjusting inventory:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to adjust inventory. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center mb-6">
-        <Link href="/dashboard/inventory" className="mr-4">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button 
+          variant="ghost" 
+          className="mr-2"
+          onClick={() => router.push('/dashboard/inventory')}
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" /> Back
+        </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Stok Ayarlama</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Adjust Inventory</h1>
           <p className="text-muted-foreground">
-            Envanter miktarlarını manuel olarak ayarla
+            Update stock quantities for inventory items
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid gap-6 mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ayarlama Bilgileri</CardTitle>
-              <CardDescription>
-                Stok ayarlaması için gerekli temel bilgiler
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="warehouse">Depo <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={formData.warehouseId}
-                    onValueChange={(value) => handleChange('warehouseId', value)}
-                    disabled={isLoadingInventory || isSubmitting}
-                  >
-                    <SelectTrigger id="warehouse">
-                      <SelectValue placeholder="Depo seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map(warehouse => (
-                        <SelectItem 
-                          key={warehouse.id} 
-                          value={warehouse.id.toString()}
-                        >
-                          {warehouse.name} ({warehouse.location})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Genel Sebep <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={formData.reason}
-                    onValueChange={(value) => handleChange('reason', value)}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger id="reason">
-                      <SelectValue placeholder="Ayarlama sebebi seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {adjustmentReasons.map(reason => (
-                        <SelectItem 
-                          key={reason.value} 
-                          value={reason.value}
-                        >
-                          {reason.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Item Details</CardTitle>
+            <CardDescription>Select an item to adjust</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            ) : !inventoryItem ? (
+              <div className="space-y-4">
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setScanningBarcode(true)}
+                    className="w-full"
+                  >
+                    <Barcode className="h-4 w-4 mr-2" /> Scan Barcode
+                  </Button>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notlar</Label>
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  placeholder="Bu ayarlama hakkında ek notlar..."
-                  rows={3}
-                  value={formData.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
-                  disabled={isSubmitting}
-                />
+                {scanningBarcode && (
+                  <div className="space-y-2">
+                    <Label htmlFor="barcode">Enter or scan barcode</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        id="barcode"
+                        ref={barcodeInputRef}
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        onKeyDown={handleBarcodeKeyDown}
+                        className="flex-1"
+                        placeholder="Scan or enter barcode..."
+                      />
+                      <Button onClick={handleBarcodeSearch}>
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-center text-muted-foreground mt-4">
+                  No inventory item selected. Use the barcode scanner or navigate back to inventory to select an item.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Ayarlanacak Ürünler</CardTitle>
-              <CardDescription>
-                Stok miktarlarını değiştirmek istediğiniz ürünleri seçin
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!formData.warehouseId ? (
-                <div className="text-center p-6 text-muted-foreground">
-                  Lütfen önce bir depo seçin
-                </div>
-              ) : isLoadingInventory ? (
-                <div className="text-center p-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Envanter yükleniyor...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Ürün ara..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      disabled={isSubmitting}
-                    />
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-3">
+                  <div>
+                    <Label>Product</Label>
+                    <p className="text-lg font-medium">{inventoryItem.product?.name}</p>
                   </div>
-
-                  <div className="border rounded-md divide-y max-h-60 overflow-y-auto">
-                    {filteredProducts.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        Ürün bulunamadı
-                      </div>
-                    ) : (
-                      filteredProducts.map(product => {
-                        const inventoryItem = inventoryItems.find(item => item.productId === product.id);
-                        const isAdded = formData.items.some(item => item.productId === product.id);
-                        
-                        if (!inventoryItem) return null;
-                        
-                        return (
-                          <div key={product.id} className="p-3 flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              <div className="text-sm text-muted-foreground flex items-center">
-                                <span className="mr-2">{product.sku}</span>
-                                <span className="font-medium">Mevcut stok: {inventoryItem.currentStock}</span>
-                              </div>
-                            </div>
-                            <Button 
-                              type="button"
-                              variant={isAdded ? "outline" : "secondary"}
-                              size="sm"
-                              onClick={() => handleAddItem(product.id)}
-                              disabled={isSubmitting || isAdded}
-                            >
-                              {isAdded ? 'Eklendi' : <><Plus className="h-4 w-4 mr-1" /> Ekle</>}
-                            </Button>
-                          </div>
-                        );
-                      })
-                    )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>SKU</Label>
+                      <p>{inventoryItem.product?.sku}</p>
+                    </div>
+                    <div>
+                      <Label>Category</Label>
+                      <p>{inventoryItem.product?.category}</p>
+                    </div>
                   </div>
-
-                  {formData.items.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-3">Eklenmiş Ürünler</h3>
-                      <div className="border rounded-md divide-y">
-                        {formData.items.map(item => (
-                          <div key={item.productId} className="p-4">
-                            <div className="flex justify-between mb-2">
-                              <div>
-                                <p className="font-medium">{item.product.name}</p>
-                                <p className="text-sm text-muted-foreground">{item.product.sku}</p>
-                              </div>
-                              <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleRemoveItem(item.productId)}
-                                disabled={isSubmitting}
-                              >
-                                <Trash className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                  <Label htmlFor={`current-${item.productId}`} className="text-xs">Mevcut:</Label>
-                                  <Input
-                                    id={`current-${item.productId}`}
-                                    value={item.currentStock}
-                                    className="col-span-2"
-                                    disabled
-                                  />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                  <Label htmlFor={`new-${item.productId}`} className="text-xs">Yeni:</Label>
-                                  <Input
-                                    id={`new-${item.productId}`}
-                                    type="number"
-                                    value={item.newStock}
-                                    onChange={(e) => handleStockChange(item.productId, parseInt(e.target.value) || 0)}
-                                    className="col-span-2"
-                                    disabled={isSubmitting}
-                                  />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                  <Label className="text-xs">Fark:</Label>
-                                  <div className={`col-span-2 text-sm font-medium ${
-                                    item.difference > 0 ? 'text-green-600' : 
-                                    item.difference < 0 ? 'text-red-600' : 'text-gray-500'
-                                  }`}>
-                                    {item.difference > 0 ? `+${item.difference}` : item.difference}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label htmlFor={`reason-${item.productId}`} className="text-xs">
-                                  Ayarlama Sebebi {item.difference !== 0 && <span className="text-red-500">*</span>}
-                                </Label>
-                                <Select 
-                                  value={item.reason}
-                                  onValueChange={(value) => handleItemReasonChange(item.productId, value)}
-                                  disabled={isSubmitting || item.difference === 0}
-                                >
-                                  <SelectTrigger id={`reason-${item.productId}`}>
-                                    <SelectValue placeholder="Sebep seçin" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {adjustmentReasons.map(reason => (
-                                      <SelectItem 
-                                        key={reason.value} 
-                                        value={reason.value}
-                                      >
-                                        {reason.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Warehouse</Label>
+                      <p>{inventoryItem.warehouse?.name}</p>
+                    </div>
+                    <div>
+                      <Label>Location</Label>
+                      <p>{inventoryItem.shelfLocation || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Current Stock</Label>
+                      <p className="text-xl font-bold">{inventoryItem.quantity}</p>
+                    </div>
+                    <div>
+                      <Label>Min/Alert Level</Label>
+                      <p>{inventoryItem.minQuantity} / {inventoryItem.alertThreshold}</p>
+                    </div>
+                  </div>
+                  {inventoryItem.barcode && (
+                    <div>
+                      <Label>Barcode</Label>
+                      <p>{inventoryItem.barcode}</p>
                     </div>
                   )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          <Link href="/dashboard/inventory">
-            <Button variant="outline" disabled={isSubmitting}>İptal</Button>
-          </Link>
-          <Button 
-            type="submit" 
-            disabled={
-              isSubmitting || 
-              !formData.warehouseId || 
-              !formData.reason || 
-              formData.items.length === 0 ||
-              !formData.items.some(item => item.difference !== 0)
-            }
-          >
-            {isSubmitting ? (
-              <>
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                İşleniyor...
-              </>
-            ) : (
-              'Stok Ayarla'
+                </div>
+              </div>
             )}
-          </Button>
-        </div>
-      </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardHeader>
+                <CardTitle>Adjustment Details</CardTitle>
+                <CardDescription>Enter stock adjustment information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="adjustmentType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Adjustment Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="add" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Add to stock
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="subtract" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Remove from stock
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="set" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Set exact quantity
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          disabled={!inventoryItem}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {form.watch('adjustmentType') === 'add' && 'Quantity to add to current stock'}
+                        {form.watch('adjustmentType') === 'subtract' && 'Quantity to remove from current stock'}
+                        {form.watch('adjustmentType') === 'set' && 'New total quantity'}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reason (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Provide a reason for this adjustment..."
+                          {...field}
+                          disabled={!inventoryItem}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => router.push('/dashboard/inventory')}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={!inventoryItem || submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Submit Adjustment'
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
+        </Card>
+      </div>
     </div>
   );
 };
 
-export default StockAdjustmentPage; 
+export default InventoryAdjustPage; 

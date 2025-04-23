@@ -72,6 +72,12 @@ const secureApi = {
     }
     return api.put(url, data, config);
   },
+  patch: async (url: string, data = {}, config = {}) => {
+    if (!hasAuthToken()) {
+      return Promise.reject({ noAuth: true });
+    }
+    return api.patch(url, data, config);
+  },
   delete: async (url: string, config = {}) => {
     if (!hasAuthToken()) {
       return Promise.reject({ noAuth: true });

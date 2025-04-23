@@ -53,6 +53,14 @@ interface IShipmentNotification {
   [key: string]: any;
 }
 
+interface TrackingInfo {
+  status: string;
+  location?: string;
+  timestamp?: string;
+  details?: string;
+  [key: string]: any;
+}
+
 /**
  * @swagger
  * tags:
@@ -265,23 +273,22 @@ export const createShipment = async (req: Request, res: Response) => {
     }
     
     // Send notification if requested
-    const customer = order.customer;
-    if (sendNotification && customer && customer.email) {
+    if (sendNotification && order.customer && order.customer.email) {
       // Create email notification
       const emailNotification = await ShipmentNotification.create({
         shipmentId: shipment.id,
         notificationType: 'email',
-        recipient: customer.email,
+        recipient: order.customer.email,
         message: `Your order #${order.id} has been shipped with ${carrierName}. Tracking number: ${trackingNumber}.`,
         status: 'pending'
       });
       
       // Create SMS notification if phone is available
-      if (recipientPhone || customer.phone) {
+      if (recipientPhone || (order.customer && order.customer.phone)) {
         await ShipmentNotification.create({
           shipmentId: shipment.id,
           notificationType: 'sms',
-          recipient: recipientPhone || customer.phone,
+          recipient: recipientPhone || order.customer.phone,
           message: `Your order #${order.id} has been shipped with ${carrierName}. Tracking number: ${trackingNumber}.`,
           status: 'pending'
         });
@@ -379,47 +386,46 @@ export const updateShipment = async (req: Request, res: Response) => {
     });
     
     // Update order status if shipment status changes
-    const order = shipment.Order;
-    if (statusChanged && order) {
+    if (statusChanged && shipment.Order) {
       if (status === 'delivered') {
-        await order.update({ status: 'delivered' });
+        await shipment.Order.update({ status: 'delivered' });
       } else if (status === 'shipped' || status === 'in_transit') {
-        await order.update({ status: 'shipped' });
+        await shipment.Order.update({ status: 'shipped' });
       } else if (status === 'failed' || status === 'returned') {
-        await order.update({ status: 'problem' });
+        await shipment.Order.update({ status: 'problem' });
       }
       
       // Send notifications for status changes if requested or for key status changes
-      const customer = order.customer;
-      if ((sendNotification || status === 'delivered' || status === 'shipped') && customer) {
+      if ((sendNotification || status === 'delivered' || status === 'shipped') && 
+          shipment.Order.customer) {
         let message = '';
         if (status === 'delivered') {
-          message = `Your order #${order.id} has been delivered.`;
+          message = `Your order #${shipment.Order.id} has been delivered.`;
         } else if (status === 'shipped') {
-          message = `Your order #${order.id} has been shipped with ${shipment.carrierName}. Tracking number: ${shipment.trackingNumber}.`;
+          message = `Your order #${shipment.Order.id} has been shipped with ${shipment.carrierName}. Tracking number: ${shipment.trackingNumber}.`;
         } else if (status === 'in_transit') {
-          message = `Your order #${order.id} is now in transit.`;
+          message = `Your order #${shipment.Order.id} is now in transit.`;
         } else {
-          message = `The status of your order #${order.id} has been updated to ${status}.`;
+          message = `The status of your order #${shipment.Order.id} has been updated to ${status}.`;
         }
         
         // Send email notification
-        if (customer.email) {
+        if (shipment.Order.customer.email) {
           await ShipmentNotification.create({
             shipmentId: shipment.id,
             notificationType: 'email',
-            recipient: customer.email,
+            recipient: shipment.Order.customer.email,
             message,
             status: 'pending'
           });
         }
         
         // Send SMS notification if phone is available
-        if (customer.phone) {
+        if (shipment.Order.customer.phone) {
           await ShipmentNotification.create({
             shipmentId: shipment.id,
             notificationType: 'sms',
-            recipient: customer.phone,
+            recipient: shipment.Order.customer.phone,
             message,
             status: 'pending'
           });
@@ -433,6 +439,40 @@ export const updateShipment = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to update shipment' });
   }
 };
+
+// Helper function to simulate tracking information (would be replaced with real carrier API integration)
+async function simulateTrackingInfo(carrierName: string, trackingNumber: string): Promise<TrackingInfo> {
+  // This is a placeholder function to simulate tracking data that would come from a real carrier API
+  return {
+    status: 'in_transit', // Using one of the valid enum values
+    location: 'Distribution Center',
+    timestamp: new Date().toISOString(),
+    details: 'Package is in transit',
+    carrier: carrierName,
+    trackingNumber: trackingNumber,
+    estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    trackingEvents: [
+      {
+        date: new Date().toISOString(),
+        location: 'Distribution Center',
+        status: 'In Transit',
+        description: 'Package is in transit'
+      },
+      {
+        date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        location: 'Sorting Facility',
+        status: 'Processed',
+        description: 'Package has been processed at sorting facility'
+      },
+      {
+        date: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        location: 'Shipping Origin',
+        status: 'Shipped',
+        description: 'Package has been shipped'
+      }
+    ]
+  };
+}
 
 /**
  * @swagger
@@ -457,75 +497,50 @@ export const updateShipment = async (req: Request, res: Response) => {
 export const trackShipment = async (req: Request, res: Response) => {
   try {
     const { trackingNumber } = req.params;
-    const { carrier } = req.query;
     
-    // Find local shipment information
+    if (!trackingNumber) {
+      return res.status(400).json({ error: 'Tracking number is required' });
+    }
+    
+    // Find the shipment with the given tracking number
     const shipment = await Shipment.findOne({
       where: { trackingNumber },
       include: [{ model: Order }]
-    });
+    }) as IShipment | null;
     
     if (!shipment) {
       return res.status(404).json({ error: 'Shipment not found' });
     }
     
-    // Default response with local data
-    const trackingInfo: {
-      shipment: any;
-      externalTracking: any;
-      error: string | null;
-    } = {
-      shipment,
-      externalTracking: null,
-      error: null
-    };
+    // This would be replaced with an actual API call to a shipping carrier
+    // For demonstration, we're simulating tracking data
+    const trackingInfo: TrackingInfo = await simulateTrackingInfo(shipment.carrierName, trackingNumber);
     
-    // Try to get real-time tracking data from carrier API if available
-    // This is a placeholder - in a real app, you would integrate with carrier APIs
-    try {
-      // Example: Integrate with a carrier API
-      // const carrierName = carrier || shipment.carrierName;
-      // const apiUrl = `https://api.${carrierName.toLowerCase()}.com/track/${trackingNumber}`;
-      // const apiResponse = await axios.get(apiUrl);
-      // trackingInfo.externalTracking = apiResponse.data;
-      
-      // For demo purposes, simulate external tracking data
-      trackingInfo.externalTracking = {
-        trackingNumber,
-        carrier: shipment.carrierName,
-        status: shipment.status,
-        estimatedDelivery: shipment.estimatedDeliveryDate,
-        lastUpdated: new Date(),
-        trackingEvents: [
-          {
-            date: new Date(),
-            location: 'Distribution Center',
-            status: 'In Transit',
-            description: 'Package is in transit'
-          },
-          {
-            date: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            location: 'Sorting Facility',
-            status: 'Processed',
-            description: 'Package has been processed at sorting facility'
-          },
-          {
-            date: new Date(Date.now() - 48 * 60 * 60 * 1000),
-            location: 'Shipping Origin',
-            status: 'Shipped',
-            description: 'Package has been shipped'
+    // Update the shipment status based on tracking info if needed
+    if (trackingInfo.status && trackingInfo.status !== shipment.status) {
+      // Only update if the tracking status is one of the valid shipment statuses
+      const validStatuses = ['pending', 'processing', 'shipped', 'in_transit', 'delivered', 'failed', 'returned'];
+      if (validStatuses.includes(trackingInfo.status)) {
+        await shipment.update({ status: trackingInfo.status });
+        
+        // If delivered, update delivery date and order status
+        if (trackingInfo.status === 'delivered') {
+          await shipment.update({ actualDeliveryDate: new Date() });
+          
+          if (shipment.Order) {
+            await shipment.Order.update({ status: 'delivered' });
           }
-        ]
-      };
-    } catch (error) {
-      console.error('Error fetching external tracking data:', error);
-      trackingInfo.error = 'Failed to fetch external tracking data';
+        }
+      }
     }
     
-    return res.status(200).json(trackingInfo);
-  } catch (error) {
+    return res.status(200).json({
+      shipment,
+      trackingInfo
+    });
+  } catch (error: any) {
     console.error('Error tracking shipment:', error);
-    return res.status(500).json({ error: 'Failed to track shipment' });
+    return res.status(500).json({ error: error.message || 'Failed to track shipment' });
   }
 };
 
@@ -714,13 +729,13 @@ export const processNotifications = async (req: Request, res: Response) => {
         });
         
         results.sent++;
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error sending notification ${notification.id}:`, error);
         
         // Update notification status as failed
         await notification.update({
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          errorMessage: error instanceof Error ? error.message : String(error)
         });
         
         results.failed++;
