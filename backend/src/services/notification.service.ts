@@ -15,8 +15,18 @@ const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@gold360.com';
 
-// Twilio istemcisi oluştur
-const twilioClient = new Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+// Twilio istemcisi oluştur (sadece geçerli kimlik bilgileri varsa)
+let twilioClient: Twilio | null = null;
+if (TWILIO_ACCOUNT_SID && TWILIO_ACCOUNT_SID.startsWith('AC') && TWILIO_AUTH_TOKEN) {
+  try {
+    twilioClient = new Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    console.log('Twilio client initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Twilio client:', error);
+  }
+} else {
+  console.warn('Twilio credentials not configured properly. SMS and WhatsApp messaging will be disabled.');
+}
 
 // Nodemailer transporter oluştur
 const emailTransporter = nodemailer.createTransport({
@@ -53,8 +63,20 @@ export const sendWhatsAppMessage = async (to: string, message: string): Promise<
     // Telefon numarasını formatla (sadece rakamlar)
     const formattedNumber = to.replace(/\D/g, '');
     
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_NUMBER) {
-      throw new Error('WhatsApp integration is not configured');
+    if (!twilioClient) {
+      return {
+        success: false,
+        error: 'WhatsApp integration is not configured properly',
+        isMock: true
+      };
+    }
+    
+    if (!TWILIO_WHATSAPP_NUMBER) {
+      return {
+        success: false,
+        error: 'WhatsApp number is not configured',
+        isMock: true
+      };
     }
     
     const result = await twilioClient.messages.create({
@@ -82,8 +104,20 @@ export const sendSMS = async (to: string, message: string): Promise<any> => {
     // Telefon numarasını formatla (sadece rakamlar)
     const formattedNumber = to.replace(/\D/g, '');
     
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-      throw new Error('SMS integration is not configured');
+    if (!twilioClient) {
+      return {
+        success: false,
+        error: 'SMS integration is not configured properly',
+        isMock: true
+      };
+    }
+    
+    if (!TWILIO_PHONE_NUMBER) {
+      return {
+        success: false,
+        error: 'Twilio phone number is not configured',
+        isMock: true
+      };
     }
     
     const result = await twilioClient.messages.create({
@@ -109,7 +143,11 @@ export const sendSMS = async (to: string, message: string): Promise<any> => {
 export const sendEmail = async (to: string, subject: string, html: string, text?: string): Promise<any> => {
   try {
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      throw new Error('Email integration is not configured');
+      return {
+        success: false,
+        error: 'Email integration is not configured properly',
+        isMock: true
+      };
     }
     
     const result = await emailTransporter.sendMail({
@@ -136,7 +174,11 @@ export const sendEmail = async (to: string, subject: string, html: string, text?
 export const sendPushNotification = async (token: string, title: string, body: string, data?: any): Promise<any> => {
   try {
     if (!firebaseInitialized) {
-      throw new Error('Firebase Cloud Messaging is not configured');
+      return {
+        success: false,
+        error: 'Firebase Cloud Messaging is not configured properly',
+        isMock: true
+      };
     }
     
     const message = {
@@ -204,13 +246,18 @@ export const sendBulkNotifications = async (
           break;
           
         default:
-          throw new Error(`Unknown notification type: ${recipient.type}`);
+          result = {
+            success: false,
+            error: `Unknown notification type: ${recipient.type}`,
+            isMock: true
+          };
+          break;
       }
       
       results.push({
         recipient,
         result,
-        success: true
+        success: result.success !== false
       });
     } catch (error: any) {
       results.push({

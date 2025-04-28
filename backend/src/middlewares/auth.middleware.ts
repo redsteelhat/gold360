@@ -17,6 +17,19 @@ export const authMiddleware = async (
 ): Promise<void | Response> => {
   // Development mode bypass (only for development)
   const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Test için: "dummy-dev-token-for-testing" token'ını kabul et
+  const authHeader = req.headers.authorization;
+  if (isDevelopment && authHeader && authHeader.includes('dummy-dev-token-for-testing')) {
+    console.log('Using dummy dev token authentication');
+    (req as any).user = {
+      id: 1,
+      email: 'dev@example.com',
+      role: 'admin'
+    };
+    return next();
+  }
+  
   if (isDevelopment && process.env.BYPASS_AUTH === 'true') {
     console.log('Auth middleware bypassed in development mode');
     // Add a default user for development
@@ -29,8 +42,6 @@ export const authMiddleware = async (
   }
 
   // Get token from header
-  const authHeader = req.headers.authorization;
-  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
       success: false,

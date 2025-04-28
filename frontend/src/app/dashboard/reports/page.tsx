@@ -27,6 +27,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  MoreHorizontal, 
+  Eye, 
+  Download, 
+  FileText, 
+  Printer, 
+  BarChart, 
+  Share2,
+  Edit,
+  AlertTriangle
+} from "lucide-react";
 
 export default function ReportsPage() {
   const [reportType, setReportType] = React.useState("sales");
@@ -90,6 +107,28 @@ export default function ReportsPage() {
     });
   };
 
+  // İşlem fonksiyonları
+  const handleViewDetails = (id: number, type: string) => {
+    toast({
+      title: "View Details",
+      description: `Viewing details for ${type} #${id}`,
+    });
+  };
+
+  const handlePrintItem = (id: number, type: string) => {
+    toast({
+      title: "Print",
+      description: `Printing ${type} #${id}`,
+    });
+  };
+
+  const handleExportItem = (id: number, type: string) => {
+    toast({
+      title: "Export",
+      description: `Exporting ${type} #${id} to PDF`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -148,6 +187,7 @@ export default function ReportsPage() {
               </CardDescription>
             </div>
             <Button variant="outline" onClick={downloadReport}>
+              <Download className="mr-2 h-4 w-4" />
               Download CSV
             </Button>
           </CardHeader>
@@ -167,6 +207,7 @@ export default function ReportsPage() {
                       <TableHead>Customer</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -177,6 +218,37 @@ export default function ReportsPage() {
                         <TableCell>{sale.customer}</TableCell>
                         <TableCell className="text-right">${sale.total.toFixed(2)}</TableCell>
                         <TableCell>{sale.status}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(sale.id, "order")}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>View Order</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrintItem(sale.id, "invoice")}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                <span>Print Invoice</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleExportItem(sale.id, "report")}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                <span>Export as PDF</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toast({
+                                title: "Analysis",
+                                description: `Analyzing order ${sale.orderId}`
+                              })}>
+                                <BarChart className="mr-2 h-4 w-4" />
+                                <span>Analyze</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -193,6 +265,7 @@ export default function ReportsPage() {
                       <TableHead className="text-right">Reserved</TableHead>
                       <TableHead className="text-right">Available</TableHead>
                       <TableHead className="text-right">Value</TableHead>
+                      <TableHead className="text-right">İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -204,6 +277,43 @@ export default function ReportsPage() {
                         <TableCell className="text-right">{item.reserved}</TableCell>
                         <TableCell className="text-right">{item.available}</TableCell>
                         <TableCell className="text-right">${item.value.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(item.id, "product")}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>View Product</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toast({
+                                title: "Inventory Adjustment",
+                                description: `Adjusting inventory for ${item.name}`
+                              })}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>Adjust Stock</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleExportItem(item.id, "inventory report")}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                <span>Export Report</span>
+                              </DropdownMenuItem>
+                              {item.available < 5 && (
+                                <DropdownMenuItem onClick={() => toast({
+                                  title: "Low Stock Alert",
+                                  description: `Creating reorder for ${item.name}`,
+                                  variant: "destructive"
+                                })}>
+                                  <AlertTriangle className="mr-2 h-4 w-4" />
+                                  <span>Reorder Stock</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

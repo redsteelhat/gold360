@@ -25,9 +25,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, FileDown, Filter, ArrowRightLeft } from 'lucide-react';
+import { Search, Plus, FileDown, Filter, ArrowRightLeft, MoreHorizontal, Eye, Send, CheckCircle, XCircle, Printer } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Types
 interface Warehouse {
@@ -279,11 +285,48 @@ const StockTransfersPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/dashboard/stock-transfers/${transfer.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Link href={`/dashboard/stock-transfers/${transfer.id}`} className="flex items-center w-full">
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>View Details</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            
+                            {transfer.status === 'PENDING' && (
+                              <DropdownMenuItem onClick={() => alert(`Send transfer ${transfer.id}`)}>
+                                <Send className="mr-2 h-4 w-4" />
+                                <span>Mark as Sent</span>
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {transfer.status === 'IN_TRANSIT' && (
+                              <DropdownMenuItem onClick={() => alert(`Complete transfer ${transfer.id}`)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                <span>Mark as Received</span>
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {(transfer.status === 'PENDING' || transfer.status === 'IN_TRANSIT') && (
+                              <DropdownMenuItem onClick={() => alert(`Cancel transfer ${transfer.id}`)}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                <span>Cancel Transfer</span>
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuItem onClick={() => alert(`Print transfer ${transfer.id}`)}>
+                              <Printer className="mr-2 h-4 w-4" />
+                              <span>Print Details</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

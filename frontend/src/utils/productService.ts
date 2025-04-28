@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { secureApi } from './api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -6,14 +7,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export interface Product {
   id: number;
   name: string;
-  description?: string;
   sku: string;
   barcode?: string;
   price: number;
   costPrice: number;
   stockQuantity: number;
-  category?: string;
-  imageUrl?: string;
+  weight: number;
+  goldKarat: string;
+  isFeatured?: boolean;
+  stockAlert?: number;
+  compareAtPrice?: number;
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -22,7 +25,7 @@ export interface Product {
 // Get all products
 export const getAllProducts = async (): Promise<Product[]> => {
   try {
-    const response = await axios.get(`${API_URL}/products`);
+    const response = await secureApi.get('/products');
     return response.data;
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -33,7 +36,7 @@ export const getAllProducts = async (): Promise<Product[]> => {
 // Get product by ID
 export const getProductById = async (id: number | string): Promise<Product> => {
   try {
-    const response = await axios.get(`${API_URL}/products/${id}`);
+    const response = await secureApi.get(`/products/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching product ${id}:`, error);
@@ -44,7 +47,7 @@ export const getProductById = async (id: number | string): Promise<Product> => {
 // Create new product
 export const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
-    const response = await axios.post(`${API_URL}/products`, productData);
+    const response = await secureApi.post('/products', productData);
     return response.data;
   } catch (error) {
     console.error('Error creating product:', error);
@@ -55,7 +58,7 @@ export const createProduct = async (productData: Omit<Product, 'id' | 'createdAt
 // Update product
 export const updateProduct = async (id: number | string, productData: Partial<Product>): Promise<Product> => {
   try {
-    const response = await axios.put(`${API_URL}/products/${id}`, productData);
+    const response = await secureApi.put(`/products/${id}`, productData);
     return response.data;
   } catch (error) {
     console.error(`Error updating product ${id}:`, error);
@@ -66,7 +69,7 @@ export const updateProduct = async (id: number | string, productData: Partial<Pr
 // Delete product
 export const deleteProduct = async (id: number | string): Promise<void> => {
   try {
-    await axios.delete(`${API_URL}/products/${id}`);
+    await secureApi.delete(`/products/${id}`);
   } catch (error) {
     console.error(`Error deleting product ${id}:`, error);
     throw error;
@@ -76,10 +79,32 @@ export const deleteProduct = async (id: number | string): Promise<void> => {
 // Update product stock
 export const updateProductStock = async (id: number | string, quantity: number): Promise<Product> => {
   try {
-    const response = await axios.patch(`${API_URL}/products/${id}/stock`, { quantity });
+    const response = await secureApi.patch(`/products/${id}/stock`, { quantity });
     return response.data;
   } catch (error) {
     console.error(`Error updating product stock for ${id}:`, error);
+    throw error;
+  }
+};
+
+// Get featured products
+export const getFeaturedProducts = async (): Promise<Product[]> => {
+  try {
+    const response = await secureApi.get('/products/featured');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching featured products:', error);
+    throw error;
+  }
+};
+
+// Get low stock products
+export const getLowStockProducts = async (): Promise<Product[]> => {
+  try {
+    const response = await secureApi.get('/products/low-stock');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching low stock products:', error);
     throw error;
   }
 };
@@ -91,4 +116,6 @@ export default {
   updateProduct,
   deleteProduct,
   updateProductStock,
+  getFeaturedProducts,
+  getLowStockProducts
 }; 

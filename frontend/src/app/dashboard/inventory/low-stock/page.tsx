@@ -26,419 +26,299 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, AlertCircle, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { Search, AlertCircle, ShoppingCart, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
+import { useLowStockAlerts, LowStockItem } from '@/utils/hooks/useLowStockAlerts';
 import api, { secureApi } from '@/utils/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
-// Types
-interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  description?: string;
-}
-
-interface Warehouse {
-  id: number;
-  name: string;
-  location: string;
-}
-
-interface StockAlert {
-  id: number;
-  productId: number;
-  warehouseId: number;
-  threshold: number;
-  currentLevel: number;
-  status: 'active' | 'resolved' | 'ignored';
-  notificationSent: boolean;
-  notificationDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  Product: Product;
-  Warehouse: Warehouse;
-}
-
-const LowStockPage = () => {
+export default function LowStockPage() {
   const { toast } = useToast();
-  const [alerts, setAlerts] = useState<StockAlert[]>([]);
-  const [filteredAlerts, setFilteredAlerts] = useState<StockAlert[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('active');
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [stats, setStats] = useState({
-    activeAlerts: 0,
-    criticalAlerts: 0,
-    totalAlerts: 0
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  // Kullanıcı kimlik doğrulamasını kontrol et
+  const { lowStockItems, loading, error } = useLowStockAlerts();
+  const [filteredItems, setFilteredItems] = useState<LowStockItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState<string>('all');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  
+  // Stok kontrolü yapılması için API çağrısı
+  const runStockCheck = async () => {
+    try {
+      toast({
+        title: "İşlem başlatıldı",
+        description: "Stok kontrolleri güncelleniyor...",
+      });
+      
+      await secureApi.post('/stock-alerts/check');
+      
+      toast({
+        title: "Başarılı",
+        description: "Stok kontrolleri tamamlandı ve alarmlar güncellendi.",
+      });
+      
+      // Sayfayı yenile
+      window.location.reload();
+    } catch (error) {
+      console.error('Stok kontrolü sırasında hata oluştu:', error);
+      toast({
+        title: "Hata",
+        description: "Stok kontrolleri sırasında bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Ürünler filtrelenir
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
-  }, []);
-
-  // Fetch warehouses
-  useEffect(() => {
-    const fetchWarehouses = async () => {
-      try {
-        const response = await secureApi.get('/warehouses');
-        setWarehouses(response.data);
-      } catch (error: any) {
-        if (!error.noAuth) {
-          console.error('Error fetching warehouses:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load warehouses. Please try again later.',
-            variant: 'destructive',
-          });
-        }
-      }
-    };
-
-    fetchWarehouses();
-  }, [toast]);
-
-  // Fetch stock alerts
-  useEffect(() => {
-    const fetchStockAlerts = async () => {
-      setIsLoading(true);
-      try {
-        // Construct query params
-        const params = new URLSearchParams();
-        
-        if (selectedStatus !== 'all') {
-          params.append('status', selectedStatus);
-        }
-        
-        if (selectedWarehouse !== 'all') {
-          params.append('warehouseId', selectedWarehouse);
-        }
-        
-        const queryString = params.toString() ? `?${params.toString()}` : '';
-        
-        // Fetch alerts using secureApi
-        const alertsResponse = await secureApi.get(`/stock-alerts${queryString}`);
-        setAlerts(alertsResponse.data);
-        setFilteredAlerts(alertsResponse.data);
-        
-        // Fetch dashboard stats using secureApi
-        const statsResponse = await secureApi.get('/stock-alerts/dashboard');
-        setStats(statsResponse.data);
-      } catch (error: any) {
-        if (!error.noAuth) {
-          console.error('Error fetching stock alerts:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load stock alerts. Please try again later.',
-            variant: 'destructive',
-          });
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStockAlerts();
-  }, [selectedWarehouse, selectedStatus, toast]);
-
-  // Filter alerts based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredAlerts(alerts);
+    if (!lowStockItems) {
+      setFilteredItems([]);
       return;
     }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = alerts.filter(alert => 
-      alert.Product.name.toLowerCase().includes(query) || 
-      alert.Product.sku.toLowerCase().includes(query) ||
-      alert.Warehouse.name.toLowerCase().includes(query) ||
-      alert.Warehouse.location.toLowerCase().includes(query)
-    );
     
-    setFilteredAlerts(filtered);
-  }, [searchQuery, alerts]);
-
-  // Get stock status badge
-  const getStockStatusBadge = (alert: StockAlert) => {
-    if (alert.currentLevel === 0) {
-      return <Badge variant="destructive">Out of Stock</Badge>;
-    } else if (alert.currentLevel <= alert.threshold / 2) {
-      return <Badge variant="destructive">Critical</Badge>;
-    } else {
-      return <Badge variant="default">Low Stock</Badge>;
+    let filtered = [...lowStockItems];
+    
+    // Arama filtresi
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.name.toLowerCase().includes(query) || 
+        item.sku.toLowerCase().includes(query)
+      );
+    }
+    
+    // Depo filtresi
+    if (warehouseFilter !== 'all') {
+      filtered = filtered.filter(item => 
+        item.warehouseName && item.warehouseName.toLowerCase().includes(warehouseFilter.toLowerCase())
+      );
+    }
+    
+    // Önem derecesi filtresi
+    if (severityFilter !== 'all') {
+      filtered = filtered.filter(item => item.severity === severityFilter);
+    }
+    
+    setFilteredItems(filtered);
+  }, [lowStockItems, searchQuery, warehouseFilter, severityFilter]);
+  
+  // Önem derecesi rozeti
+  const getSeverityBadge = (severity: LowStockItem['severity']) => {
+    switch(severity) {
+      case 'critical':
+        return <Badge variant="destructive">Stokta Yok</Badge>;
+      case 'warning':
+        return <Badge variant="warning">Kritik Seviye</Badge>;
+      default:
+        return <Badge variant="outline">Az Stok</Badge>;
     }
   };
   
-  // Handle alert status change
-  const handleStatusChange = async (alertId: number, newStatus: 'active' | 'resolved' | 'ignored') => {
-    try {
-      await secureApi.put(`/stock-alerts/${alertId}`, { status: newStatus });
-      
-      // Update local state
-      setAlerts(alerts.map(alert => 
-        alert.id === alertId 
-          ? { ...alert, status: newStatus }
-          : alert
-      ));
-      
-      toast({
-        title: 'Status Updated',
-        description: `Alert has been marked as ${newStatus}`,
-      });
-    } catch (error: any) {
-      if (error.noAuth) {
-        toast({
-          title: 'Authentication Required',
-          description: 'Please log in to update alert status',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      console.error('Error updating alert status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update alert status',
-        variant: 'destructive',
+  // Warehouse listesi oluşturma
+  const getWarehouseOptions = () => {
+    const warehouses = new Set<string>();
+    
+    if (lowStockItems) {
+      lowStockItems.forEach(item => {
+        if (item.warehouseName) {
+          warehouses.add(item.warehouseName);
+        }
       });
     }
+    
+    return Array.from(warehouses);
   };
   
-  // Run inventory check
-  const runInventoryCheck = async () => {
-    try {
-      const response = await secureApi.post('/stock-alerts/check');
-      const data = response.data;
-      
-      toast({
-        title: 'Inventory Check Complete',
-        description: `Found ${data.results.created} new alerts, updated ${data.results.updated}, resolved ${data.results.resolved}`,
-      });
-      
-      // Refresh alerts
-      const refreshResponse = await secureApi.get('/stock-alerts');
-      setAlerts(refreshResponse.data);
-      setFilteredAlerts(refreshResponse.data);
-      
-      // Refresh stats
-      const statsResponse = await secureApi.get('/stock-alerts/dashboard');
-      setStats(statsResponse.data);
-    } catch (error: any) {
-      if (error.noAuth) {
-        toast({
-          title: 'Authentication Required',
-          description: 'Please log in to run inventory check',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      console.error('Error running inventory check:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to run inventory check',
-        variant: 'destructive',
-      });
-    }
+  // İstatistikler
+  const stats = {
+    total: lowStockItems?.length || 0,
+    critical: lowStockItems?.filter(item => item.severity === 'critical').length || 0,
+    warning: lowStockItems?.filter(item => item.severity === 'warning').length || 0,
+    normal: lowStockItems?.filter(item => item.severity === 'normal').length || 0,
   };
-
+  
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Low Stock Alerts</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Düşük Stok Uyarıları</h1>
           <p className="text-muted-foreground">
-            View and manage items with low stock levels across all warehouses
+            Stok seviyesi düşük olan ürünleri görüntüleyin ve gerekli işlemleri yapın.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={runInventoryCheck}>
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Run Stock Check
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard/inventory">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Manage Inventory
-            </Link>
-          </Button>
-        </div>
+        <Button onClick={runStockCheck} className="shrink-0">
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Stok Kontrolü Yap
+        </Button>
       </div>
-
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
+      
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Active Alerts</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.activeAlerts}
+              {loading ? <Skeleton className="h-7 w-16" /> : stats.total}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Critical Alerts</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Stokta Yok</CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {stats.criticalAlerts}
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-7 w-16" /> : stats.critical}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Total Alerts</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kritik Seviye</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-500">
-              {stats.totalAlerts}
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-7 w-16" /> : stats.warning}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Az Stok</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-7 w-16" /> : stats.normal}
             </div>
           </CardContent>
         </Card>
       </div>
-
+      
       <Card>
         <CardHeader>
-          <CardTitle>Stock Alerts</CardTitle>
-          <CardDescription>Items that need to be restocked</CardDescription>
+          <CardTitle>Düşük Stok Ürünleri</CardTitle>
+          <CardDescription>
+            Sistemdeki düşük stoklu tüm ürünlerin listesi. Ürünlerin durumunu görüntüleyebilir ve stok ekleyebilirsiniz.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Warehouse" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Warehouses</SelectItem>
-                  {warehouses.map(warehouse => (
-                    <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
-                      {warehouse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="ignored">Ignored</SelectItem>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="relative w-full max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Ürün ara..."
+                className="pl-8 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <Button variant="outline">Export</Button>
+            
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="Kritiklik" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tümü</SelectItem>
+                <SelectItem value="critical">Stokta Yok</SelectItem>
+                <SelectItem value="warning">Kritik Seviye</SelectItem>
+                <SelectItem value="normal">Az Stok</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="Depo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm Depolar</SelectItem>
+                {getWarehouseOptions().map(warehouse => (
+                  <SelectItem key={warehouse} value={warehouse}>
+                    {warehouse}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4">
+                  <Skeleton className="h-12 w-1/4" />
+                  <Skeleton className="h-12 w-1/4" />
+                  <Skeleton className="h-12 w-1/6" />
+                  <Skeleton className="h-12 w-1/6" />
+                  <Skeleton className="h-12 w-1/6" />
+                </div>
+              ))}
             </div>
-          ) : filteredAlerts.length === 0 ? (
+          ) : error ? (
             <div className="flex flex-col items-center justify-center h-64">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg">No alerts found</h3>
-              <p className="text-muted-foreground text-sm mt-1">
-                {searchQuery ? "Try adjusting your search query or filters" : "All your inventory items are at healthy levels"}
+              <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
+              <h3 className="text-lg font-medium">Hata Oluştu</h3>
+              <p className="text-muted-foreground text-center mt-2 max-w-md">
+                Stok bilgileri alınırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.
+              </p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Stok Uyarısı Bulunamadı</h3>
+              <p className="text-muted-foreground text-center mt-2 max-w-md">
+                {searchQuery || severityFilter !== 'all' || warehouseFilter !== 'all'
+                  ? "Filtrelediğiniz kriterlere uygun ürün bulunamadı."
+                  : "Şu anda stok seviyesi düşük ürün bulunmuyor."}
               </p>
             </div>
           ) : (
-            <div className="border rounded-md">
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Ürün</TableHead>
                     <TableHead>SKU</TableHead>
-                    <TableHead>Warehouse</TableHead>
-                    <TableHead className="text-center">Current Stock</TableHead>
-                    <TableHead className="text-center">Threshold</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Stok Durumu</TableHead>
+                    <TableHead>Depo</TableHead>
+                    <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAlerts.map((alert) => (
-                    <TableRow key={alert.id}>
-                      <TableCell className="font-medium">{alert.Product.name}</TableCell>
-                      <TableCell>{alert.Product.sku}</TableCell>
-                      <TableCell>{alert.Warehouse.name}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={`font-medium ${alert.currentLevel === 0 ? 'text-destructive' : ''}`}>
-                          {alert.currentLevel}
-                        </span>
+                  {filteredItems.map((item) => (
+                    <TableRow key={`${item.id}-${item.productId}`}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.sku}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getSeverityBadge(item.severity)}
+                          <span className="text-sm">
+                            {item.currentQuantity} / {item.threshold}
+                          </span>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-center">{alert.threshold}</TableCell>
-                      <TableCell className="text-center">
-                        {getStockStatusBadge(alert)}
-                      </TableCell>
+                      <TableCell>{item.warehouseName || "Ana Depo"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          {alert.status === 'active' && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleStatusChange(alert.id, 'ignored')}
-                              >
-                                Ignore
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleStatusChange(alert.id, 'resolved')}
-                              >
-                                Resolve
-                              </Button>
-                            </>
-                          )}
-                          {alert.status === 'ignored' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleStatusChange(alert.id, 'active')}
-                            >
-                              Unignore
-                            </Button>
-                          )}
-                          {alert.status === 'resolved' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleStatusChange(alert.id, 'active')}
-                            >
-                              Reactivate
-                            </Button>
-                          )}
-                          <Button 
-                            variant="default" 
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
                             size="sm"
                             asChild
                           >
-                            <Link href={`/dashboard/inventory/product/${alert.productId}`}>
-                              <ShoppingCart className="h-4 w-4 mr-1" />
-                              Restock
+                            <Link href={`/dashboard/products/${item.productId}/edit`}>
+                              Düzenle
+                            </Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            asChild
+                          >
+                            <Link href={`/dashboard/inventory/stock-add?productId=${item.productId}`}>
+                              Stok Ekle
                             </Link>
                           </Button>
                         </div>
@@ -453,6 +333,4 @@ const LowStockPage = () => {
       </Card>
     </div>
   );
-};
-
-export default LowStockPage; 
+} 

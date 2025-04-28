@@ -6,7 +6,7 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle, 
+  CardTitle,
   CardDescription 
 } from '@/components/ui/card';
 import { 
@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Search, Warehouse, Barcode, FilePlus, ArrowUpDown, FileDown } from 'lucide-react';
+import { AlertCircle, Search, Warehouse, Barcode, FilePlus, ArrowUpDown, FileDown, FileEdit, Edit, Trash } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   Dialog,
@@ -39,7 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
-import { InventoryItem, getAllInventory, getInventoryByBarcode } from '@/utils/inventoryService';
+import { InventoryItem, getAllInventory, getInventoryByBarcode, deleteInventoryItem } from '@/utils/inventoryService';
 
 const InventoryPage = () => {
   const router = useRouter();
@@ -50,51 +50,164 @@ const InventoryPage = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isWarehousesLoading, setIsWarehousesLoading] = useState<boolean>(true);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [barcode, setBarcode] = useState('');
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  const [showLowStockOnly, setShowLowStockOnly] = useState<boolean>(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      if (!token) {
+        // Geliştirme modunda token oluştur
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Setting dummy token for development');
+          localStorage.setItem('token', 'dummy-dev-token-for-testing');
+          localStorage.setItem('user', JSON.stringify({
+            id: 1,
+            name: 'Test User',
+            email: 'test@example.com',
+            role: 'admin'
+          }));
+          setIsAuthChecking(false);
+          return;
+        }
+        
+        setAuthError(true);
+        toast({
+          title: 'Oturum Hatası',
+          description: 'Oturum açmanız gerekiyor. Yönlendiriliyorsunuz...',
+          variant: 'destructive',
+        });
+        
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      } else {
+        setIsAuthChecking(false);
+      }
+    };
+    
+    checkAuth();
+  }, [router, toast]);
 
   // Fetch warehouses
   useEffect(() => {
+    if (isAuthChecking || authError) return;
+    
     const fetchWarehouses = async () => {
+      setIsWarehousesLoading(true);
       try {
-        const response = await fetch('/api/warehouses');
-        const data = await response.json();
-        setWarehouses(data);
+        console.log('Fetching warehouses...');
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(`${apiUrl}/warehouses`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         
-        if (data.length > 0) {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Warehouses data received:', data);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          setWarehouses(data);
           setSelectedWarehouse(data[0].id.toString());
+        } else {
+          console.error('No warehouses found or invalid data format:', data);
+          setApiError('No warehouses found');
+          toast({
+            title: 'Veri Hatası',
+            description: 'Depo verileri alınamadı veya boş.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.error('Error fetching warehouses:', error);
+        setApiError('Error loading warehouses');
         toast({
-          title: 'Error',
-          description: 'Failed to load warehouses. Please try again later.',
+          title: 'Hata',
+          description: 'Depo bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.',
           variant: 'destructive',
         });
+      } finally {
+        setIsWarehousesLoading(false);
       }
     };
 
     fetchWarehouses();
-  }, [toast]);
+  }, [toast, isAuthChecking, authError]);
 
   // Fetch inventory for selected warehouse
   useEffect(() => {
     const fetchInventory = async () => {
-      if (!selectedWarehouse) return;
+      if (!selectedWarehouse || isAuthChecking || authError) return;
       
       setIsLoading(true);
+      setApiError(null);
+      
       try {
         const warehouseId = selectedWarehouse ? parseInt(selectedWarehouse) : undefined;
-        const data = await getAllInventory({ warehouseId });
-        setInventory(data);
-        setFilteredInventory(data);
-      } catch (error) {
+        console.log('Fetching inventory for warehouse:', warehouseId, 'lowStock:', showLowStockOnly);
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const url = new URL(`${apiUrl}/inventory`);
+        
+        // Query parametreleri ekle
+        if (warehouseId) {
+          url.searchParams.append('warehouseId', warehouseId.toString());
+        }
+        if (showLowStockOnly) {
+          url.searchParams.append('lowStock', 'true');
+        }
+        
+        console.log('Direct API call to:', url.toString());
+        
+        // Doğrudan fetch API ile çağrı yap
+        const response = await fetch(url.toString(), {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Inventory data received:', data);
+        
+        if (Array.isArray(data)) {
+          setInventory(data);
+          setFilteredInventory(data);
+        } else {
+          console.error('Invalid inventory data format:', data);
+          setApiError('Invalid inventory data format');
+          toast({
+            title: 'Veri Hatası',
+            description: 'Envanter verileri geçersiz formatta.',
+            variant: 'destructive',
+          });
+        }
+      } catch (error: any) {
         console.error('Error fetching inventory:', error);
+        setApiError(`Error loading inventory: ${error.message}`);
         toast({
-          title: 'Error',
-          description: 'Failed to load inventory data. Please try again later.',
+          title: 'Hata',
+          description: `Envanter verileri yüklenemedi: ${error.message}`,
           variant: 'destructive',
         });
       } finally {
@@ -102,10 +215,10 @@ const InventoryPage = () => {
       }
     };
 
-    if (selectedWarehouse) {
+    if (selectedWarehouse && !isAuthChecking && !authError) {
       fetchInventory();
     }
-  }, [selectedWarehouse, toast]);
+  }, [selectedWarehouse, showLowStockOnly, toast, router, isAuthChecking, authError]);
 
   // Filter inventory based on search query
   useEffect(() => {
@@ -135,19 +248,19 @@ const InventoryPage = () => {
   // Determine if stock level is low
   const getStockStatus = (item: InventoryItem) => {
     if (item.quantity <= item.minQuantity) {
-      return { label: 'Out of Stock', color: 'destructive' };
+      return { label: 'Stok Yok', color: 'destructive' };
     } else if (item.quantity <= item.alertThreshold) {
-      return { label: 'Low Stock', color: 'warning' };
+      return { label: 'Düşük Stok', color: 'warning' };
     } else {
-      return { label: 'In Stock', color: 'success' };
+      return { label: 'Stokta Var', color: 'success' };
     }
   };
 
   const handleBarcodeScan = async () => {
     if (!barcode.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a barcode',
+        title: 'Hata',
+        description: 'Lütfen bir barkod girin',
         variant: 'destructive',
       });
       return;
@@ -165,8 +278,8 @@ const InventoryPage = () => {
       console.error('Error finding item by barcode:', error);
       setScanStatus('error');
       toast({
-        title: 'Error',
-        description: 'No item found with this barcode',
+        title: 'Hata',
+        description: 'Bu barkodla ürün bulunamadı',
         variant: 'destructive',
       });
     }
@@ -181,7 +294,7 @@ const InventoryPage = () => {
 
   const exportInventory = () => {
     // Create CSV content
-    const headers = ['SKU', 'Product', 'Category', 'Warehouse', 'Quantity', 'Min Quantity', 'Alert Threshold', 'Location', 'Barcode'];
+    const headers = ['SKU', 'Ürün', 'Kategori', 'Depo', 'Miktar', 'Min Miktar', 'Uyarı Eşiği', 'Konum', 'Barkod'];
     
     const rows = filteredInventory.map(item => [
       item.product?.sku || '',
@@ -200,206 +313,368 @@ const InventoryPage = () => {
       ...rows.map(row => row.join(','))
     ].join('\n');
     
-    // Create download link
+    // Indirme bağlantısı oluştur
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `envanter_${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
   };
 
+  const handleDeleteItem = async (itemId: number) => {
+    try {
+      await deleteInventoryItem(itemId);
+      
+      // Remove the item from the local state
+      setInventory(prev => prev.filter(item => item.id !== itemId));
+      setFilteredInventory(prev => prev.filter(item => item.id !== itemId));
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Envanter öğesi başarıyla silindi',
+      });
+      
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      toast({
+        title: 'Hata',
+        description: 'Envanter öğesi silinirken hata oluştu. Lütfen tekrar deneyin.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const confirmDelete = (item: InventoryItem) => {
+    setItemToDelete(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Hata durumunu gösteren yardımcı bileşen
+  const ErrorDisplay = ({ message }: { message: string }) => (
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+      <h3 className="text-lg font-medium text-destructive mb-2">Veri Yükleme Hatası</h3>
+      <p className="text-muted-foreground">{message}</p>
+      <Button 
+        className="mt-4" 
+        onClick={() => window.location.reload()}
+        variant="outline"
+      >
+        Yeniden Dene
+      </Button>
+    </div>
+  );
+
+  // Yükleme durumunu gösteren yardımcı bileşen
+  const LoadingDisplay = ({ message }: { message: string }) => (
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4"></div>
+      <p className="text-muted-foreground">{message}</p>
+    </div>
+  );
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-          <p className="text-muted-foreground">
-            Manage and track inventory across all warehouses
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Barcode className="h-4 w-4 mr-2" /> Scan
+    <>
+      {isAuthChecking ? (
+        <LoadingDisplay message="Oturum kontrol ediliyor..." />
+      ) : authError ? (
+        <ErrorDisplay message="Oturum hatası. Lütfen tekrar giriş yapın." />
+      ) : (
+        <div className="container mx-auto py-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Envanter Yönetimi</h1>
+              <p className="text-muted-foreground">
+                Tüm depolardaki envanteri yönetin ve takip edin
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Barcode className="h-4 w-4 mr-2" /> Tara
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Barkod Tara</DialogTitle>
+                    <DialogDescription>
+                      Envanter öğesi bulmak için barkod tarayın veya girin
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="barcodeInput">Barkod</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          id="barcodeInput"
+                          ref={barcodeInputRef}
+                          value={barcode}
+                          onChange={(e) => setBarcode(e.target.value)}
+                          onKeyDown={handleBarcodeKeyDown}
+                          placeholder="Barkod tarayın veya yazın..."
+                          disabled={scanStatus === 'scanning'}
+                        />
+                      </div>
+                    </div>
+                    {scanStatus === 'error' && (
+                      <div className="text-sm text-destructive flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-1" /> Bu barkodla ürün bulunamadı
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      type="button" 
+                      onClick={handleBarcodeScan}
+                      disabled={scanStatus === 'scanning' || !barcode.trim()}
+                    >
+                      {scanStatus === 'scanning' ? 'Taranıyor...' : 'Ürün Bul'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button variant="outline" onClick={() => router.push('/dashboard/inventory/adjust')}>
+                <ArrowUpDown className="h-4 w-4 mr-2" /> Düzenle
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Scan Barcode</DialogTitle>
-                <DialogDescription>
-                  Scan or enter a barcode to find an inventory item
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="barcodeInput">Barcode</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="barcodeInput"
-                      ref={barcodeInputRef}
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                      onKeyDown={handleBarcodeKeyDown}
-                      placeholder="Scan or type barcode..."
-                      disabled={scanStatus === 'scanning'}
+              <Button onClick={() => router.push('/dashboard/inventory/add')}>
+                <FilePlus className="h-4 w-4 mr-2" /> Ürün Ekle
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Toplam Ürünler</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{inventory.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Düşük Stok Ürünleri</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {inventory.filter(item => item.quantity <= item.alertThreshold && item.quantity > item.minQuantity).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Stok Dışı Ürünler</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {inventory.filter(item => item.quantity <= item.minQuantity).length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between">
+                <CardTitle>Envanter Ürünleri</CardTitle>
+                <Button variant="outline" onClick={exportInventory}>
+                  <FileDown className="h-4 w-4 mr-2" /> Dışa Aktar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="warehouse">Depo</Label>
+                    {isWarehousesLoading ? (
+                      <div className="flex items-center h-10 px-3 border rounded-md">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
+                        <span className="text-sm text-muted-foreground">Yükleniyor...</span>
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedWarehouse}
+                        onValueChange={(value) => {
+                          console.log('Selected warehouse changed to:', value);
+                          setSelectedWarehouse(value);
+                        }}
+                      >
+                        <SelectTrigger id="warehouse">
+                          <SelectValue placeholder="Depo seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses && warehouses.length > 0 ? (
+                            warehouses.map((warehouse) => (
+                              <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                                {warehouse.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="loading" disabled>
+                              Depo bulunamadı
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <Label htmlFor="search">Ara</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search"
+                        placeholder="İsim, SKU veya konuma göre ara..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="lowStockOnly"
+                      checked={showLowStockOnly}
+                      onChange={(e) => setShowLowStockOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
                     />
+                    <Label htmlFor="lowStockOnly" className="cursor-pointer">Sadece Düşük Stok Göster</Label>
                   </div>
                 </div>
-                {scanStatus === 'error' && (
-                  <div className="text-sm text-destructive flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" /> No item found with this barcode
+
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mr-3"></div>
+                    <span className="text-muted-foreground">Envanter yükleniyor...</span>
+                  </div>
+                ) : apiError ? (
+                  <ErrorDisplay message={apiError} />
+                ) : filteredInventory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center border rounded-md">
+                    <Warehouse className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Envanter bulunamadı</h3>
+                    <p className="text-muted-foreground max-w-md mb-6">
+                      Seçilen depoda hiçbir envanter öğesi bulunamadı veya filtreleme kriterleri hiçbir ürünle eşleşmedi.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => router.push('/dashboard/inventory/add')}
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" /> Yeni Ürün Ekle
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>SKU</TableHead>
+                          <TableHead>Ürün</TableHead>
+                          <TableHead>Depo</TableHead>
+                          <TableHead className="text-right">Miktar</TableHead>
+                          <TableHead>Min Miktar</TableHead>
+                          <TableHead>Durum</TableHead>
+                          <TableHead>Konum</TableHead>
+                          <TableHead className="text-right">İşlemler</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredInventory.map((item) => {
+                          const status = getStockStatus(item);
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-mono">{item.product?.sku}</TableCell>
+                              <TableCell>{item.product?.name}</TableCell>
+                              <TableCell>{item.warehouse?.name}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell>{item.minQuantity}</TableCell>
+                              <TableCell>
+                                <Badge variant={status.color as any}>{status.label}</Badge>
+                              </TableCell>
+                              <TableCell>{item.shelfLocation}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => router.push(`/dashboard/inventory/adjust?id=${item.id}`)}
+                                    title="Düzenle"
+                                  >
+                                    <FileEdit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => router.push(`/dashboard/inventory/edit?id=${item.id}`)}
+                                    title="Düzenle"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => confirmDelete(item)}
+                                    title="Sil"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Envanter Öğesini Sil</DialogTitle>
+                <DialogDescription>
+                  Bu envanter öğesini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                {itemToDelete && (
+                  <div className="space-y-2">
+                    <p><strong>Ürün:</strong> {itemToDelete.product?.name}</p>
+                    <p><strong>SKU:</strong> {itemToDelete.product?.sku}</p>
+                    <p><strong>Depo:</strong> {itemToDelete.warehouse?.name}</p>
+                    <p><strong>Mevcut Miktar:</strong> {itemToDelete.quantity}</p>
                   </div>
                 )}
               </div>
               <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  İptal
+                </Button>
                 <Button 
-                  type="button" 
-                  onClick={handleBarcodeScan}
-                  disabled={scanStatus === 'scanning' || !barcode.trim()}
+                  variant="destructive" 
+                  onClick={() => itemToDelete && handleDeleteItem(itemToDelete.id)}
                 >
-                  {scanStatus === 'scanning' ? 'Scanning...' : 'Find Item'}
+                  Sil
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Button onClick={() => router.push('/dashboard/inventory/adjust')}>
-            <ArrowUpDown className="h-4 w-4 mr-2" /> Adjust
-          </Button>
-          <Button onClick={() => router.push('/dashboard/stock-transfers/new')}>
-            <FilePlus className="h-4 w-4 mr-2" /> Transfer
-          </Button>
         </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Total Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inventory.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Low Stock Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {inventory.filter(item => item.quantity <= item.alertThreshold && item.quantity > item.minQuantity).length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Out of Stock Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {inventory.filter(item => item.quantity <= item.minQuantity).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory List</CardTitle>
-          <CardDescription>View and manage inventory across all warehouses</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4 space-x-2">
-            <div className="flex items-center w-full max-w-sm space-x-2">
-              <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Warehouse" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map(warehouse => (
-                    <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
-                      {warehouse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button variant="outline" onClick={exportInventory}>
-              <FileDown className="h-4 w-4 mr-2" /> Export
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-          ) : filteredInventory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Warehouse className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg">No inventory items found</h3>
-              <p className="text-muted-foreground text-sm mt-1">
-                {searchQuery ? "Try adjusting your search query" : "This warehouse has no inventory items"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">SKU</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="w-[100px]">Quantity</TableHead>
-                    <TableHead className="w-[100px]">Status</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead className="w-[100px]">Last Check</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInventory.map((item) => {
-                    const status = getStockStatus(item);
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.product?.sku}</TableCell>
-                        <TableCell>{item.product?.name}</TableCell>
-                        <TableCell>{item.product?.category}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>
-                          <Badge variant={status.color as any}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell>{item.shelfLocation || '-'}</TableCell>
-                        <TableCell>{item.lastStockCheck ? new Date(item.lastStockCheck).toLocaleDateString() : '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/inventory/adjust?id=${item.id}`)}
-                          >
-                            Adjust
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      )}
+    </>
   );
 };
 

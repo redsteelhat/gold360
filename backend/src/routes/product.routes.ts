@@ -1,28 +1,26 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import {
+  getAllProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  updateProductStock,
+  getFeaturedProducts,
+  getLowStockProducts
+} from '../controllers/product.controller';
 
 const router = Router();
 
-// Placeholder for product controller functions
-// These will need to be implemented
-router.get('/', (req, res) => {
-  res.status(200).json({ message: 'Get all products' });
-});
-
-router.get('/:id', (req, res) => {
-  res.status(200).json({ message: `Get product with ID: ${req.params.id}` });
-});
-
-router.post('/', authMiddleware, (req, res) => {
-  res.status(201).json({ message: 'Create new product', data: req.body });
-});
-
-router.put('/:id', authMiddleware, (req, res) => {
-  res.status(200).json({ message: `Update product with ID: ${req.params.id}`, data: req.body });
-});
-
-router.delete('/:id', authMiddleware, (req, res) => {
-  res.status(200).json({ message: `Delete product with ID: ${req.params.id}` });
-});
+// Product routes
+router.get('/', getAllProducts);
+router.get('/featured', getFeaturedProducts);
+router.get('/low-stock', getLowStockProducts);
+router.get('/:id', getProductById);
+router.post('/', authMiddleware, createProduct);
+router.put('/:id', authMiddleware, updateProduct);
+router.delete('/:id', authMiddleware, deleteProduct);
+router.patch('/:id/stock', authMiddleware, updateProductStock);
 
 export default router; 

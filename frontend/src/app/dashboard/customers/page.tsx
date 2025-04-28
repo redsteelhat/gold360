@@ -24,109 +24,75 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, Plus, Trash, Filter, ListFilter } from 'lucide-react';
+import { Eye, Edit, Plus, Trash, MessageSquare, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
-
-interface Customer {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  totalOrders: number;
-  totalSpent: number;
-  status: 'active' | 'inactive';
-  loyaltyPoints: number;
-  lastOrderDate: string;
-}
-
-// Mock data for customers
-const mockCustomers: Customer[] = [
-  {
-    id: 1,
-    name: "Ahmet Yılmaz",
-    email: "ahmet.yilmaz@example.com",
-    phone: "+90 555 123 4567",
-    totalOrders: 12,
-    totalSpent: 15250,
-    status: 'active',
-    loyaltyPoints: 520,
-    lastOrderDate: "2023-08-15"
-  },
-  {
-    id: 2,
-    name: "Ayşe Demir",
-    email: "ayse.demir@example.com",
-    phone: "+90 555 765 4321",
-    totalOrders: 5,
-    totalSpent: 7800,
-    status: 'active',
-    loyaltyPoints: 150,
-    lastOrderDate: "2023-09-22"
-  },
-  {
-    id: 3,
-    name: "Mehmet Kaya",
-    email: "mehmet.kaya@example.com",
-    phone: "+90 555 333 2211",
-    totalOrders: 8,
-    totalSpent: 9650,
-    status: 'inactive',
-    loyaltyPoints: 310,
-    lastOrderDate: "2023-06-10"
-  },
-  {
-    id: 4,
-    name: "Zeynep Öztürk",
-    email: "zeynep.ozturk@example.com",
-    phone: "+90 555 987 6543",
-    totalOrders: 20,
-    totalSpent: 32500,
-    status: 'active',
-    loyaltyPoints: 950,
-    lastOrderDate: "2023-10-05"
-  },
-  {
-    id: 5,
-    name: "Mustafa Şahin",
-    email: "mustafa.sahin@example.com",
-    phone: "+90 555 456 7890",
-    totalOrders: 3,
-    totalSpent: 2100,
-    status: 'active',
-    loyaltyPoints: 45,
-    lastOrderDate: "2023-10-18"
-  }
-];
+import { 
+  Customer, 
+  getAllCustomers, 
+  deleteCustomer, 
+  sendCustomerMessage 
+} from '@/utils/customerService';
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(mockCustomers);
-  const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<Customer['status'] | 'all'>('all');
+  const [filter, setFilter] = useState<'active' | 'inactive' | 'all'>('all');
+  const [segmentFilter, setSegmentFilter] = useState<string | 'all'>('all');
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  useEffect(() => {
     filterCustomers();
-  }, [searchTerm, statusFilter, customers]);
+  }, [searchTerm, filter, segmentFilter, customers]);
+
+  const fetchCustomers = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllCustomers();
+      const customersWithFullName = data.map(customer => ({
+        ...customer,
+        fullName: customer.fullName || `${customer.firstName} ${customer.lastName}`
+      }));
+      setCustomers(customersWithFullName);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast({
+        title: "Hata",
+        description: "Müşteriler yüklenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filterCustomers = () => {
     let filtered = customers;
     
     // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(customer => customer.status === statusFilter);
+    if (filter !== 'all') {
+      filtered = filtered.filter(customer => customer.status === filter);
+    }
+    
+    // Filter by segment
+    if (segmentFilter !== 'all') {
+      filtered = filtered.filter(customer => customer.segment === segmentFilter);
     }
     
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(customer => 
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phone.includes(searchTerm)
+        customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -134,57 +100,105 @@ export default function CustomersPage() {
   };
 
   const handleViewCustomer = (customerId: number) => {
-    toast({
-      title: 'Bilgi',
-      description: `Müşteri ${customerId} görüntüleniyor.`,
-    });
-    // router.push(`/dashboard/customers/${customerId}`);
+    router.push(`/dashboard/customers/${customerId}`);
   };
 
   const handleEditCustomer = (customerId: number) => {
-    toast({
-      title: 'Bilgi',
-      description: `Müşteri ${customerId} düzenleniyor.`,
-    });
-    // router.push(`/dashboard/customers/${customerId}/edit`);
+    router.push(`/dashboard/customers/${customerId}/edit`);
   };
 
   const handleCreateCustomer = () => {
-    toast({
-      title: 'Bilgi',
-      description: 'Yeni müşteri oluşturuluyor.',
-    });
-    // router.push('/dashboard/customers/create');
+    router.push('/dashboard/customers/create');
   };
 
-  const handleDeleteCustomer = (customerId: number) => {
-    // Silme işlemi simülasyonu
-    setCustomers(customers.filter(customer => customer.id !== customerId));
-    
-    toast({
-      title: 'Başarılı',
-      description: 'Müşteri başarıyla silindi.',
-    });
+  const handleDeleteCustomer = async (customerId: number) => {
+    try {
+      await deleteCustomer(customerId);
+      
+      // Update local state - müşterinin pasif (inactive) olarak işaretlendiği durumları da ele alalım
+      if (filter === 'all') {
+        // Tüm müşterileri gösterirken, pasif olanları da saklayalım
+        setCustomers(prevCustomers => 
+          prevCustomers.map(customer => 
+            customer.id === customerId 
+              ? { ...customer, status: 'inactive' as 'inactive' } 
+              : customer
+          )
+        );
+      } else {
+        // Sadece aktif/pasif gösterirken, uygun olanlardan çıkaralım
+        setCustomers(prevCustomers => 
+          prevCustomers.filter(customer => customer.id !== customerId)
+        );
+      }
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Müşteri başarıyla kaldırıldı.',
+      });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast({
+        title: "Hata",
+        description: "Müşteri silinirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('tr-TR');
+  const handleSendMessage = async (customerId: number) => {
+    try {
+      await sendCustomerMessage(customerId, {
+        subject: "Merhaba",
+        message: "Mağazamızda yeni ürünler var. İndirim fırsatlarını kaçırmayın!",
+        channels: ["email", "sms"]
+      });
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Müşteriye mesaj gönderildi.',
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Hata",
+        description: "Mesaj gönderilirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: Customer['status']) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Aktif</Badge>;
-      case 'inactive':
-        return <Badge variant="secondary">Pasif</Badge>;
-      default:
-        return null;
-    }
+    const statusConfig = {
+      active: { label: 'Aktif', variant: 'success' as const },
+      inactive: { label: 'Pasif', variant: 'secondary' as const },
+    };
+
+    const config = statusConfig[status] || { label: 'Bilinmiyor', variant: 'outline' as const };
+    return (
+      <Badge variant={config.variant}>
+        {config.label}
+      </Badge>
+    );
   };
+
+  const getSegmentBadge = (segment: string) => {
+    const segmentConfig: Record<string, { label: string, variant: 'default' | 'outline' | 'secondary' | 'destructive' | 'success' }> = {
+      'gold': { label: 'Altın', variant: 'success' },
+      'silver': { label: 'Gümüş', variant: 'secondary' },
+      'bronze': { label: 'Bronz', variant: 'default' },
+      'vip': { label: 'VIP', variant: 'destructive' },
+    };
+
+    const config = segmentConfig[segment] || { label: segment, variant: 'outline' };
+    return (
+      <Badge variant={config.variant}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const uniqueSegments = ['all', ...Array.from(new Set(customers.map(customer => customer.segment)))];
 
   if (loading) {
     return (
@@ -200,7 +214,7 @@ export default function CustomersPage() {
         <div>
           <CardTitle>Müşteriler</CardTitle>
           <CardDescription>
-            Tüm müşterilerinizi yönetin ve müşteri bilgilerini takip edin.
+            Tüm müşterileri yönetin ve mesaj gönderin.
           </CardDescription>
         </div>
         <div className="flex space-x-2">
@@ -215,19 +229,38 @@ export default function CustomersPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
-                Durum: {statusFilter === 'all' ? 'Tümü' : statusFilter === 'active' ? 'Aktif' : 'Pasif'}
+                Durum: {filter === 'all' ? 'Tümü' : filter === 'active' ? 'Aktif' : 'Pasif'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+              <DropdownMenuItem onClick={() => setFilter('all')}>
                 Tümü
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter('active')}>
+              <DropdownMenuItem onClick={() => setFilter('active')}>
                 Aktif
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+              <DropdownMenuItem onClick={() => setFilter('inactive')}>
                 Pasif
               </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Segment: {segmentFilter === 'all' ? 'Tümü' : segmentFilter}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {uniqueSegments.map((segment) => (
+                <DropdownMenuItem 
+                  key={segment} 
+                  onClick={() => setSegmentFilter(segment)}
+                >
+                  {segment === 'all' ? 'Tümü' : segment}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -238,73 +271,77 @@ export default function CustomersPage() {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Müşteri Adı</TableHead>
-              <TableHead>E-posta</TableHead>
-              <TableHead>Telefon</TableHead>
-              <TableHead>Sipariş Sayısı</TableHead>
-              <TableHead>Toplam Harcama</TableHead>
-              <TableHead>Sadakat Puanı</TableHead>
-              <TableHead>Son Sipariş</TableHead>
-              <TableHead>Durum</TableHead>
-              <TableHead className="text-right">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
+        {filteredCustomers.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground">
+            {searchTerm || filter !== 'all' || segmentFilter !== 'all' ? 
+              'Aradığınız kriterlere uygun müşteri bulunamadı.' : 
+              'Henüz hiç müşteri bulunmuyor.'}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={10} className="text-center">
-                  {statusFilter === 'all' && !searchTerm 
-                    ? 'Henüz müşteri bulunmuyor.' 
-                    : 'Arama kriterlerinize uygun müşteri bulunamadı.'}
-                </TableCell>
+                <TableHead>İsim</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Segment</TableHead>
+                <TableHead>Durum</TableHead>
+                <TableHead className="text-right">İşlemler</TableHead>
               </TableRow>
-            ) : (
-              filteredCustomers.map((customer) => (
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
-                  <TableCell className="font-medium">#{customer.id}</TableCell>
-                  <TableCell>{customer.name}</TableCell>
+                  <TableCell className="font-medium">{customer.fullName}</TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{customer.totalOrders}</TableCell>
-                  <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-                  <TableCell>{customer.loyaltyPoints}</TableCell>
-                  <TableCell>{formatDate(customer.lastOrderDate)}</TableCell>
+                  <TableCell>{customer.phone || '-'}</TableCell>
+                  <TableCell>{getSegmentBadge(customer.segment)}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Açılır menü</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewCustomer(customer.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>Görüntüle</span>
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuItem onClick={() => handleEditCustomer(customer.id)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Düzenle</span>
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuItem onClick={() => handleDeleteCustomer(customer.id)}>
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Sil</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleViewCustomer(customer.id)}
+                        title="Görüntüle"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditCustomer(customer.id)}
+                        title="Düzenle"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleSendMessage(customer.id)}
+                        title="Mesaj Gönder"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteCustomer(customer.id)}
+                        title="Sil"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

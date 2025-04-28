@@ -4,43 +4,37 @@ import sequelize from '../config/database';
 export interface ProductAttributes {
   id: number;
   name: string;
-  description: string;
   sku: string;
   price: number;
   compareAtPrice?: number;
   costPrice: number;
-  categoryId: number;
-  weight?: number;
-  dimensions?: string;
-  material?: string;
-  images: string[];
+  weight: number;
+  goldKarat: string;
   isActive: boolean;
   isFeatured: boolean;
   stockQuantity: number;
   stockAlert: number;
+  status?: 'active' | 'inactive';
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface ProductCreationAttributes extends Optional<ProductAttributes, 'id' | 'compareAtPrice' | 'weight' | 'dimensions' | 'material' | 'isFeatured' | 'createdAt' | 'updatedAt'> {}
+export interface ProductCreationAttributes extends Optional<ProductAttributes, 'id' | 'compareAtPrice' | 'isFeatured' | 'status' | 'createdAt' | 'updatedAt'> {}
 
 class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
   public id!: number;
   public name!: string;
-  public description!: string;
   public sku!: string;
   public price!: number;
   public compareAtPrice?: number;
   public costPrice!: number;
-  public categoryId!: number;
-  public weight?: number;
-  public dimensions?: string;
-  public material?: string;
-  public images!: string[];
+  public weight!: number;
+  public goldKarat!: string;
   public isActive!: boolean;
   public isFeatured!: boolean;
   public stockQuantity!: number;
   public stockAlert!: number;
+  public status?: 'active' | 'inactive';
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -54,10 +48,6 @@ Product.init(
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
-    },
-    description: {
-      type: DataTypes.TEXT,
       allowNull: false,
     },
     sku: {
@@ -77,26 +67,13 @@ Product.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    categoryId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
     weight: {
       type: DataTypes.DECIMAL(6, 2),
-      allowNull: true,
-    },
-    dimensions: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    material: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    images: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
+    },
+    goldKarat: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -118,6 +95,15 @@ Product.init(
       allowNull: false,
       defaultValue: 5,
     },
+    status: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return this.isActive ? 'active' : 'inactive';
+      },
+      set(value: 'active' | 'inactive') {
+        this.setDataValue('isActive', value === 'active');
+      }
+    }
   },
   {
     sequelize,

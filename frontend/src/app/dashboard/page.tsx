@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import LowStockAlerts from '@/components/Inventory/LowStockAlerts';
+import { LowStockWidget } from '@/components/Dashboard/LowStockWidget';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -23,19 +23,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Overview Section */}
+      {/* Genel Bakış */}
       <div>
-        <h2 className="text-2xl font-bold text-text-primary mb-4">Overview</h2>
+        <h2 className="text-2xl font-bold text-text-primary mb-4">Genel Bakış</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Sales Card */}
+          {/* Satış Kartı */}
           <div className="card border-l-4 border-gold-primary">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-text-secondary">Total Sales</p>
+                <p className="text-sm text-text-secondary">Toplam Satış</p>
                 <p className="text-2xl font-bold text-text-primary">{stats.totalSales}</p>
                 <p className="text-xs text-green-500 flex items-center mt-1">
-                  <span className="mr-1">↑</span> {stats.salesGrowth} from last month
+                  <span className="mr-1">↑</span> Geçen aya göre {stats.salesGrowth}
                 </p>
               </div>
               <div className="h-10 w-10 bg-gold-primary/20 rounded-full flex items-center justify-center">
@@ -46,14 +46,14 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Orders Card */}
+          {/* Sipariş Kartı */}
           <div className="card border-l-4 border-blue-500">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-text-secondary">Orders</p>
+                <p className="text-sm text-text-secondary">Siparişler</p>
                 <p className="text-2xl font-bold text-text-primary">{stats.orders}</p>
                 <p className="text-xs text-green-500 flex items-center mt-1">
-                  <span className="mr-1">↑</span> {stats.ordersGrowth} from last month
+                  <span className="mr-1">↑</span> Geçen aya göre {stats.ordersGrowth}
                 </p>
               </div>
               <div className="h-10 w-10 bg-blue-500/20 rounded-full flex items-center justify-center">
@@ -64,14 +64,14 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Customers Card */}
+          {/* Müşteriler Kartı */}
           <div className="card border-l-4 border-purple-500">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-text-secondary">Customers</p>
+                <p className="text-sm text-text-secondary">Müşteriler</p>
                 <p className="text-2xl font-bold text-text-primary">{stats.customers}</p>
                 <p className="text-xs text-green-500 flex items-center mt-1">
-                  <span className="mr-1">↑</span> {stats.customersGrowth} from last month
+                  <span className="mr-1">↑</span> Geçen aya göre {stats.customersGrowth}
                 </p>
               </div>
               <div className="h-10 w-10 bg-purple-500/20 rounded-full flex items-center justify-center">
@@ -82,14 +82,14 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Low Stock Card */}
+          {/* Düşük Stok Kartı */}
           <div className="card border-l-4 border-red-500">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-text-secondary">Low Stock Items</p>
+                <p className="text-sm text-text-secondary">Düşük Stok Ürünleri</p>
                 <p className="text-2xl font-bold text-text-primary">{stats.lowStockItems}</p>
                 <p className="text-xs text-red-500 flex items-center mt-1">
-                  <span className="mr-1">↑</span> {stats.lowStockGrowth} more than last week
+                  <span className="mr-1">↑</span> Geçen haftaya göre {stats.lowStockGrowth} fazla
                 </p>
               </div>
               <div className="h-10 w-10 bg-red-500/20 rounded-full flex items-center justify-center">
@@ -103,13 +103,13 @@ export default function DashboardPage() {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders Section */}
+        {/* Son Siparişler Bölümü */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-text-primary">Recent Orders</h2>
+            <h2 className="text-2xl font-bold text-text-primary">Son Siparişler</h2>
             <Button variant="link" asChild>
               <Link href="/dashboard/orders" className="flex items-center">
-                View All
+                Tümünü Gör
                 <ArrowUpRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -120,46 +120,46 @@ export default function DashboardPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Order ID
+                    Sipariş No
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Customer
+                    Müşteri
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Date
+                    Tarih
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Amount
+                    Tutar
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Status
+                    Durum
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {/* Order rows... */}
+                {/* Sipariş satırları... */}
               </tbody>
             </table>
           </div>
         </div>
         
-        {/* Low Stock Alerts Section */}
+        {/* Düşük Stok Uyarıları Bölümü */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-text-primary">Low Stock Alerts</h2>
+            <h2 className="text-2xl font-bold text-text-primary">Düşük Stok Uyarıları</h2>
             <Button variant="link" asChild>
               <Link href="/dashboard/inventory/low-stock" className="flex items-center">
-                View All
+                Tümünü Gör
                 <ArrowUpRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </div>
           
-          <LowStockAlerts limit={3} />
+          <LowStockWidget limit={5} />
         </div>
       </div>
       
-      {/* Rest of the dashboard content... */}
+      {/* Gösterge panelinin geri kalanı... */}
     </div>
   );
 }

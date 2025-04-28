@@ -15,9 +15,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Gold360 - Jewelry Management System',
-  description: 'Complete digital solution for jewelry businesses',
-  keywords: 'jewelry, e-commerce, CRM, inventory management, gold, retail, digital platform',
+  title: 'Gold360 - Kuyumcu Yönetim Sistemi',
+  description: 'Kuyumcu işletmeleri için eksiksiz dijital çözüm',
+  keywords: 'kuyumcu, e-ticaret, CRM, envanter yönetimi, altın, perakende, dijital platform',
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="tr" className={inter.variable}>
       <body className="bg-bg-light min-h-screen">
         <AuthProvider>
           {children}

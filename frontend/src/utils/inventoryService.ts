@@ -68,25 +68,40 @@ export const getAllInventory = async (filters?: {
   productId?: number;
   lowStock?: boolean;
 }): Promise<InventoryItem[]> => {
-  const queryParams = new URLSearchParams();
-  
-  if (filters?.warehouseId) {
-    queryParams.append('warehouseId', filters.warehouseId.toString());
+  try {
+    console.log('getAllInventory called with filters:', filters);
+    
+    const queryParams = new URLSearchParams();
+    
+    if (filters?.warehouseId) {
+      queryParams.append('warehouseId', filters.warehouseId.toString());
+    }
+    
+    if (filters?.productId) {
+      queryParams.append('productId', filters.productId.toString());
+    }
+    
+    if (filters?.lowStock) {
+      queryParams.append('lowStock', 'true');
+    }
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/inventory?${queryString}` : '/inventory';
+    
+    console.log('Calling API with URL:', url);
+    const response = await secureApi.get(url);
+    console.log('Response from API:', response);
+    
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error('Invalid response data format:', response.data);
+      return [];
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error in getAllInventory:', error);
+    throw error;
   }
-  
-  if (filters?.productId) {
-    queryParams.append('productId', filters.productId.toString());
-  }
-  
-  if (filters?.lowStock) {
-    queryParams.append('lowStock', 'true');
-  }
-  
-  const queryString = queryParams.toString();
-  const url = queryString ? `/inventory?${queryString}` : '/inventory';
-  
-  const response = await secureApi.get(url);
-  return response.data;
 };
 
 // Get inventory item by ID
