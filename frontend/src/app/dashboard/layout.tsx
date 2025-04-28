@@ -65,31 +65,31 @@ const SettingsIcon = () => (
 
 // Sidebar navigation items
 const sidebarItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
-  { name: 'Products', href: '/dashboard/products', icon: <ProductsIcon /> },
-  { name: 'Orders', href: '/dashboard/orders', icon: <OrdersIcon /> },
-  { name: 'Customers', href: '/dashboard/customers', icon: <CustomersIcon /> },
+  { name: 'Ana Sayfa', href: '/dashboard', icon: <HomeIcon /> },
+  { name: 'Ürünler', href: '/dashboard/products', icon: <ProductsIcon /> },
+  { name: 'Siparişler', href: '/dashboard/orders', icon: <OrdersIcon /> },
+  { name: 'Müşteriler', href: '/dashboard/customers', icon: <CustomersIcon /> },
   { 
-    name: 'Inventory', 
+    name: 'Envanter', 
     href: '/dashboard/inventory', 
     icon: <InventoryIcon />,
     subItems: [
-      { name: 'Stock Overview', href: '/dashboard/inventory' },
-      { name: 'Low Stock Items', href: '/dashboard/inventory/low-stock' },
+      { name: 'Stok Genel Bakış', href: '/dashboard/inventory' },
+      { name: 'Düşük Stok Ürünleri', href: '/dashboard/inventory/low-stock' },
     ]
   },
   { 
-    name: 'Warehouses', 
+    name: 'Depolar', 
     href: '/dashboard/warehouses', 
     icon: <WarehouseIcon /> 
   },
   { 
-    name: 'Stock Transfers', 
+    name: 'Stok Transferleri', 
     href: '/dashboard/stock-transfers', 
     icon: <TransfersIcon /> 
   },
-  { name: 'Reports', href: '/dashboard/reports', icon: <ReportsIcon /> },
-  { name: 'Settings', href: '/dashboard/settings', icon: <SettingsIcon /> },
+  { name: 'Raporlar', href: '/dashboard/reports', icon: <ReportsIcon /> },
+  { name: 'Ayarlar', href: '/dashboard/settings', icon: <SettingsIcon /> },
   { name: 'Kargo Yönetimi', href: '/dashboard/shipments', icon: <Truck /> },
 ];
 
@@ -107,15 +107,15 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-bg-light">
       <div className="flex h-screen overflow-hidden">
-        {/* Sidebar */}
+        {/* Kenar Çubuğu */}
         <div className={`flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0 -ml-64 md:w-20 md:ml-0'}`}>
           <Sidebar items={sidebarItems} />
         </div>
 
-        {/* Main content */}
+        {/* Ana içerik */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header title="Dashboard" onMenuToggle={toggleSidebar} />
-          <main className="flex-1 overflow-auto p-4">
+          <Header title="Kontrol Paneli" onMenuToggle={toggleSidebar} />
+          <main className="flex-1 overflow-auto p-4 md:p-8">
             {children}
           </main>
         </div>

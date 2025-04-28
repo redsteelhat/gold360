@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuToggle }) => {
           <button
             onClick={onMenuToggle}
             className="md:hidden mr-4 text-text-primary"
-            aria-label="Toggle menu"
+            aria-label="Menüyü aç/kapat"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -38,21 +38,21 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuToggle }) => {
             </svg>
           </button>
 
-          {/* Page title */}
-          <h1 className="text-xl font-bold text-text-primary">{title}</h1>
+          {/* Sayfa başlığı */}
+          <h1 className="text-heading-1 font-bold text-text-primary">{title}</h1>
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Search */}
+          {/* Arama */}
           <div className="hidden md:block relative">
             <input
               type="text"
-              placeholder="Search..."
-              className="input-field py-1 pl-8 pr-2 text-sm w-48 md:w-64"
+              placeholder="Ara..."
+              className="input-field py-1 pl-8 pr-2 text-label w-48 md:w-64"
             />
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="h-4 w-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-text-secondary"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuToggle }) => {
             </svg>
           </div>
 
-          {/* Notifications */}
+          {/* Bildirimler */}
           <button className="text-text-secondary hover:text-text-primary relative">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -82,10 +82,10 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuToggle }) => {
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
               />
             </svg>
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-danger"></span>
           </button>
 
-          {/* Help */}
+          {/* Yardım */}
           <button className="text-text-secondary hover:text-text-primary">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -103,14 +103,14 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuToggle }) => {
             </svg>
           </button>
 
-          {/* User and Logout */}
+          {/* Kullanıcı ve Çıkış */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium hidden md:inline">
+            <span className="text-label font-medium hidden md:inline">
               {user?.name || 'Kullanıcı'}
             </span>
             <button 
               onClick={logout}
-              className="text-sm bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md transition-colors"
+              className="text-label bg-danger hover:bg-danger/90 text-white py-1 px-3 rounded-md transition-colors shadow-button"
             >
               Çıkış
             </button>

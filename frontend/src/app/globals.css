@@ -5,47 +5,55 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 0 0% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 0 0% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --popover-foreground: 0 0% 12%;
+    --primary: 46 58% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 46 89% 68%;
+    --accent-foreground: 0 0% 12%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 46 58% 50%;
+    --radius: 6px;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
+    --background: 0 0% 12%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 46 58% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary-foreground: 0 0% 100%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 46 89% 68%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --ring: 46 58% 50%;
   }
 }
 
@@ -54,7 +62,20 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg-light text-text-primary;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-text-primary;
+  }
+  h1 {
+    @apply text-heading-1 font-bold;
+  }
+  h2 {
+    @apply text-heading-2 font-semibold;
+  }
+  p {
+    @apply text-body font-regular text-text-primary;
   }
 }
 
@@ -103,33 +124,44 @@
   @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground;
 }
 
-:root {
-  --foreground-rgb: 30, 30, 30;
-  --background-start-rgb: 247, 249, 252;
-  --background-end-rgb: 247, 249, 252;
-  --gold-primary: 212, 175, 55;
-  --gold-secondary: 255, 193, 7;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
-}
-
 @layer components {
   .btn-primary {
-    @apply bg-[#D4AF37] hover:bg-[#FFC107] text-white font-medium py-2 px-4 rounded transition-colors duration-300;
+    @apply bg-gold-primary hover:bg-gold-secondary text-white font-medium py-2 px-4 rounded-md shadow-button transition-colors duration-300;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-medium py-2 px-4 rounded transition-colors duration-300;
+    @apply bg-white hover:bg-bg-light text-text-primary border border-gray-300 font-medium py-2 px-4 rounded-md shadow-button transition-colors duration-300;
+  }
+  
+  .btn-danger {
+    @apply bg-danger hover:bg-danger/90 text-white font-medium py-2 px-4 rounded-md shadow-button transition-colors duration-300;
+  }
+  
+  .btn-success {
+    @apply bg-success hover:bg-success/90 text-white font-medium py-2 px-4 rounded-md shadow-button transition-colors duration-300;
   }
   
   .card {
-    @apply bg-white p-5 rounded-lg shadow-md;
+    @apply rounded-lg border bg-white p-4 shadow-card;
   }
   
   .input-field {
-    @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50;
+    @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold-primary/50 text-text-primary placeholder:text-text-secondary;
+  }
+  
+  .badge-primary {
+    @apply bg-gold-primary/20 text-gold-primary px-2 py-1 rounded-md text-label font-medium;
+  }
+  
+  .badge-success {
+    @apply bg-success/20 text-success px-2 py-1 rounded-md text-label font-medium;
+  }
+  
+  .badge-danger {
+    @apply bg-danger/20 text-danger px-2 py-1 rounded-md text-label font-medium;
+  }
+  
+  .badge-secondary {
+    @apply bg-bg-light text-text-secondary px-2 py-1 rounded-md text-label font-medium;
   }
 } 

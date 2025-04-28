@@ -17,8 +17,14 @@ module.exports = {
     },
     extend: {
       colors: {
+        'white': '#FFFFFF',
+        'bg-light': '#F7F9FC',
         'gold-primary': '#D4AF37',
         'gold-secondary': '#FFC107',
+        'text-primary': '#1E1E1E',
+        'text-secondary': '#6B7280',
+        'success': '#22C55E',
+        'danger': '#EF4444',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -54,9 +60,34 @@ module.exports = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "8px",
+        md: "6px",
+        sm: "4px",
+      },
+      fontSize: {
+        'heading-1': '24px',
+        'heading-2': '20px',
+        'body': '16px',
+        'label': '14px',
+      },
+      fontWeight: {
+        regular: '400',
+        medium: '500',
+        semibold: '600',
+        bold: '700',
+      },
+      spacing: {
+        '2': '8px',
+        '4': '16px',
+        '6': '24px',
+        '8': '32px',
+        '10': '40px',
+        '12': '48px',
+      },
+      boxShadow: {
+        'card': '0 2px 4px rgba(0, 0, 0, 0.05)',
+        'button': '0 1px 2px rgba(0, 0, 0, 0.05)',
+        'dropdown': '0 4px 6px rgba(0, 0, 0, 0.1)',
       },
       keyframes: {
         "accordion-down": {

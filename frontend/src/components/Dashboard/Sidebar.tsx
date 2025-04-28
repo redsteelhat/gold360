@@ -52,10 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ items }) => {
               <li key={item.name} className="mb-1">
                 <div className="flex flex-col">
                   <div 
-                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-md cursor-pointer ${
+                    className={`flex items-center px-4 py-2 text-label font-medium rounded-md cursor-pointer ${
                       isActive
                         ? 'bg-gold-primary/10 text-gold-primary'
-                        : 'text-text-secondary hover:bg-gray-50'
+                        : 'text-text-secondary hover:bg-bg-light'
                     }`}
                     onClick={() => hasSubItems ? toggleSubMenu(item.name) : null}
                   >
@@ -79,7 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items }) => {
                     )}
                   </div>
                   
-                  {/* Sub Items */}
+                  {/* Alt Öğeler */}
                   {hasSubItems && isExpanded && (
                     <ul className="ml-8 mt-1 space-y-1">
                       {item.subItems!.map((subItem) => {
@@ -91,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items }) => {
                               className={`block px-4 py-2 text-sm rounded-md ${
                                 isSubItemActive
                                   ? 'bg-gold-primary/5 text-gold-primary'
-                                  : 'text-text-secondary hover:bg-gray-50'
+                                  : 'text-text-secondary hover:bg-bg-light'
                               }`}
                             >
                               {subItem.name}
@@ -108,19 +108,19 @@ const Sidebar: React.FC<SidebarProps> = ({ items }) => {
         </ul>
       </nav>
 
-      {/* User Section */}
+      {/* Kullanıcı Bölümü */}
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center">
           <div className="w-8 h-8 rounded-full bg-gold-primary/20 flex items-center justify-center text-gold-primary font-medium">
-            U
+            K
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium text-text-primary">User Name</p>
-            <p className="text-xs text-text-secondary">user@example.com</p>
+            <p className="text-label font-medium text-text-primary">Kullanıcı Adı</p>
+            <p className="text-xs text-text-secondary">kullanici@ornek.com</p>
           </div>
         </div>
         <button className="mt-4 w-full text-left text-sm text-text-secondary hover:text-text-primary px-2 py-1">
-          Log out
+          Çıkış Yap
         </button>
       </div>
     </div>
