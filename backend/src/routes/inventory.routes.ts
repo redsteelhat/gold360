@@ -1,8 +1,11 @@
 import express from 'express';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
-import { UserRole } from '../models/user.model';
+import * as inventoryController from '../controllers/inventory.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
+
+// Apply authentication middleware to all inventory routes
+router.use(authenticate);
 
 /**
  * @swagger
@@ -22,10 +25,7 @@ const router = express.Router();
  *       500:
  *         description: Failed to get inventory status
  */
-router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]), (req, res) => {
-  // Placeholder for inventory listing functionality
-  res.status(200).json({ message: 'Inventory listing functionality will be implemented' });
-});
+router.get('/', inventoryController.getInventory);
 
 /**
  * @swagger
@@ -45,9 +45,18 @@ router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER, UserR
  *       500:
  *         description: Failed to get low stock items
  */
-router.get('/low-stock', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER]), (req, res) => {
-  // Placeholder for low stock items functionality
-  res.status(200).json({ message: 'Low stock items functionality will be implemented' });
-});
+router.get('/low-stock', inventoryController.getLowStockAlerts);
+
+// GET inventory details for a specific product
+router.get('/product/:productId', inventoryController.getProductInventory);
+
+// POST add stock to inventory
+router.post('/add', inventoryController.addStock);
+
+// POST adjust inventory
+router.post('/adjust', inventoryController.adjustStock);
+
+// POST resolve a stock alert
+router.post('/alerts/:alertId/resolve', inventoryController.resolveStockAlert);
 
 export default router; 

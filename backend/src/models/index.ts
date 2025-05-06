@@ -1,11 +1,21 @@
 import sequelize from '../config/database';
 import { User } from './user.model';
 import { Product } from './product.model';
+import { Warehouse } from './warehouse.model';
+import { StockTransaction } from './stockTransaction.model';
+import { StockAlert } from './stockAlert.model';
+import { StockTransfer } from './stockTransfer.model';
+import { TransferItem } from './transferItem.model';
 
 // Register models
 const models = [
   User,
   Product,
+  Warehouse,
+  StockTransaction,
+  StockAlert,
+  StockTransfer,
+  TransferItem,
   // Add more models as they are created
 ];
 
@@ -17,6 +27,11 @@ export {
   sequelize,
   User,
   Product,
+  Warehouse,
+  StockTransaction,
+  StockAlert,
+  StockTransfer,
+  TransferItem,
   // Export more models as they are created
 };
 
@@ -24,5 +39,10 @@ export default {
   sequelize,
   User,
   Product,
+  Warehouse,
+  StockTransaction,
+  StockAlert,
+  StockTransfer,
+  TransferItem,
   // Export more models as they are created
 }; 

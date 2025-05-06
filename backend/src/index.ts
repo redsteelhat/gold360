@@ -23,6 +23,8 @@ import orderRoutes from './routes/order.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import customerRoutes from './routes/customer.routes';
 import reportRoutes from './routes/report.routes';
+import warehouseRoutes from './routes/warehouse.routes';
+import stockTransferRoutes from './routes/stockTransfer.routes';
 
 // Initialize express app
 const app: Express = express();
@@ -92,6 +94,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/stock-transfers', stockTransferRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
