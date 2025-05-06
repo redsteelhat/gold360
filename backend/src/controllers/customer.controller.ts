@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { Customer, CustomerType, CustomerLoyaltyTier, CustomerAddress } from '../models/customer.model';
-import { User, UserRole } from '../models/user.model';
+import { User } from '../models/user.model';
 import { Order } from '../models/order.model';
 
 // Get all customers with optional filtering

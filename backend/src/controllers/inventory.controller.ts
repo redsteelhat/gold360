@@ -338,7 +338,7 @@ export const adjustStock = async (req: Request, res: Response) => {
 };
 
 // Get low stock alerts
-export const getLowStockAlerts = async (req: Request, res: Response) => {
+export const getLowStockAlerts = async (_req: Request, res: Response) => {
   try {
     const alerts = await StockAlert.findAll({
       where: {

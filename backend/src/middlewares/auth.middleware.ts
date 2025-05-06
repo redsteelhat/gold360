@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User, UserRole } from '../models/user.model';
+import { UserRole } from '../models/user.model';
 
 // JWT Secret from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'gold360_jwt_secret';

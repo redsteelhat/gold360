@@ -21,7 +21,7 @@ export const enhancedSecurityHeaders = (
     enablePermissionsPolicy?: boolean;
   }
 ) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (_req: Request, res: Response, next: NextFunction): void => {
     // Generate a random nonce for CSP
     const nonce = crypto.randomBytes(16).toString('base64');
     res.locals.cspNonce = nonce;
@@ -70,7 +70,7 @@ export const enhancedSecurityHeaders = (
 /**
  * Middleware to set secure cookie settings
  */
-export const secureCookies = (req: Request, res: Response, next: NextFunction): void => {
+export const secureCookies = (_req: Request, res: Response, next: NextFunction): void => {
   // Override Express's cookie function to always use secure settings
   const originalCookie = res.cookie;
   res.cookie = function (name: string, value: string, options: any = {}): Response {

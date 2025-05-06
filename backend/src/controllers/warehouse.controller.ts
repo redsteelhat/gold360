@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Warehouse } from '../models/warehouse.model';
 
 // Get all warehouses
-export const getAllWarehouses = async (req: Request, res: Response) => {
+export const getAllWarehouses = async (_req: Request, res: Response) => {
   try {
     const warehouses = await Warehouse.findAll({
       where: {

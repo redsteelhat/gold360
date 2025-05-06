@@ -1,4 +1,4 @@
-import { Table, Column, Model, DataType, BelongsTo, HasMany, ForeignKey, BeforeCreate, Default } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, BelongsTo, HasMany, ForeignKey, BeforeCreate } from 'sequelize-typescript';
 import { User } from './user.model';
 import { OrderItem } from './orderItem.model';
 import { Customer } from './customer.model';

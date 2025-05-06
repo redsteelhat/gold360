@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { QueryTypes, Op } from 'sequelize';
+import { Op } from 'sequelize';
 import { Order, OrderStatus, PaymentStatus } from '../models/order.model';
 import { OrderItem } from '../models/orderItem.model';
 import { Product } from '../models/product.model';

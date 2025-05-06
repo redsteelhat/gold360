@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../config/database';
-import { Order, OrderStatus, PaymentStatus } from '../models/order.model';
+import { Order, OrderStatus } from '../models/order.model';
 import { OrderItem } from '../models/orderItem.model';
 import { Product } from '../models/product.model';
-import { StockTransaction, TransactionType } from '../models/stockTransaction.model';
+import { StockTransaction } from '../models/stockTransaction.model';
 import { User } from '../models/user.model';
-import { Customer, CustomerType, CustomerLoyaltyTier } from '../models/customer.model';
+import { Customer } from '../models/customer.model';
 
 // Generate sales report
 export const getSalesReport = async (req: Request, res: Response) => {
@@ -496,7 +496,7 @@ export const getCustomerReport = async (req: Request, res: Response) => {
 };
 
 // Dashboard overview report
-export const getDashboardReport = async (req: Request, res: Response) => {
+export const getDashboardReport = async (_req: Request, res: Response) => {
   try {
     // Today's date
     const today = new Date();

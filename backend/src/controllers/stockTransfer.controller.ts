@@ -9,7 +9,7 @@ import { Warehouse } from '../models/warehouse.model';
 import sequelize from '../config/database';
 
 // Get all stock transfers
-export const getAllTransfers = async (req: Request, res: Response) => {
+export const getAllTransfers = async (_req: Request, res: Response) => {
   try {
     const transfers = await StockTransfer.findAll({
       order: [['createdAt', 'DESC']],

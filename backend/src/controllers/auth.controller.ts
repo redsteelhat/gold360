@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import { User, UserRole } from '../models/user.model';
 
 // JWT Secret from environment variables

@@ -22,7 +22,7 @@ const router = express.Router();
  *       500:
  *         description: Failed to get users
  */
-router.get('/', authenticate, authorize([UserRole.ADMIN]), (req, res) => {
+router.get('/', authenticate, authorize([UserRole.ADMIN]), (_req, res) => {
   // Placeholder for user listing functionality
   res.status(200).json({ message: 'User listing functionality will be implemented' });
 });
@@ -54,7 +54,7 @@ router.get('/', authenticate, authorize([UserRole.ADMIN]), (req, res) => {
  *       500:
  *         description: Failed to get user
  */
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', authenticate, (_req, res) => {
   // Placeholder for get user functionality
   res.status(200).json({ message: 'Get user functionality will be implemented' });
 });

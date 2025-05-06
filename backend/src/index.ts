@@ -94,7 +94,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Routes
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.send('Gold360 API is running');
 });
 
@@ -112,7 +112,7 @@ app.use('/api/security', securityRoutes);
 app.use('/api/marketing', marketingRoutes);
 
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
     message: 'Internal Server Error',
@@ -121,7 +121,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // 404 Route
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' });
 });
 

@@ -21,7 +21,7 @@ export const logDataAccess = (
     accessPurpose?: string;
   }
 ) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     // Call next immediately to avoid blocking the request
     next();
 
@@ -80,7 +80,7 @@ export const logFailedAccess = (
   accessType: AccessType,
   failureDetails: string
 ) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       // Get user ID if available (might not be for unauthorized access)
       const userId = req.user?.id;
@@ -108,4 +108,20 @@ export const logFailedAccess = (
     // Continue to the next middleware or route handler
     next();
   };
-}; 
+};
+
+// Implementation is commented out as it's not currently used
+// export const logSensitiveDataAccess = (
+//   entityType: string,
+//   accessType: AccessType,
+//   options?: {
+//     getEntityId?: (req: Request) => number | null | undefined;
+//     getDataSubjectId?: (req: Request) => number | null | undefined;
+//     accessDetails?: string | ((req: Request) => string | undefined);
+//     accessPurpose?: string;
+//   }
+// ) => {
+//   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+//     // Implementation details
+//   };
+// }; 

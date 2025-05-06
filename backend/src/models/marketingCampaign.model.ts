@@ -1,5 +1,4 @@
-import { Table, Column, Model, DataType, Default, HasMany, ForeignKey, BelongsTo, BelongsToMany } from 'sequelize-typescript';
-import { Customer } from './customer.model';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { User } from './user.model';
 
 export enum CampaignType {
