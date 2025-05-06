@@ -13,6 +13,11 @@ import { DataPrivacy } from './dataPrivacy.model';
 import { DataAccessLog } from './dataAccessLog.model';
 import { DataRequest } from './dataRequest.model';
 import { DataBreachLog } from './dataBreachLog.model';
+import { MarketingCampaign } from './marketingCampaign.model';
+import { MarketingCampaignRecipient } from './marketingCampaignRecipient.model';
+import { MarketingTemplate } from './marketingTemplate.model';
+import { SocialMediaAccount } from './socialMediaAccount.model';
+import { SocialMediaPost } from './socialMediaPost.model';
 
 // Register models
 const models = [
@@ -30,6 +35,11 @@ const models = [
   DataAccessLog,
   DataRequest,
   DataBreachLog,
+  MarketingCampaign,
+  MarketingCampaignRecipient,
+  MarketingTemplate,
+  SocialMediaAccount,
+  SocialMediaPost,
   // Add more models as they are created
 ];
 
@@ -53,6 +63,11 @@ export {
   DataAccessLog,
   DataRequest,
   DataBreachLog,
+  MarketingCampaign,
+  MarketingCampaignRecipient,
+  MarketingTemplate,
+  SocialMediaAccount,
+  SocialMediaPost,
   // Export more models as they are created
 };
 
@@ -72,5 +87,10 @@ export default {
   DataAccessLog,
   DataRequest,
   DataBreachLog,
+  MarketingCampaign,
+  MarketingCampaignRecipient,
+  MarketingTemplate,
+  SocialMediaAccount,
+  SocialMediaPost,
   // Export more models as they are created
 }; 
