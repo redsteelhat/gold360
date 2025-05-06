@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { QueryTypes } from 'sequelize';
 import { StockTransfer, TransferStatus } from '../models/stockTransfer.model';
 import { TransferItem, TransferItemStatus } from '../models/transferItem.model';
 import { StockTransaction, TransactionType } from '../models/stockTransaction.model';
@@ -151,7 +152,7 @@ export const createTransfer = async (req: Request, res: Response) => {
         
         const [stockResult] = await sequelize.query(stockQuery, {
           replacements: { productId, warehouseId: sourceWarehouseId },
-          type: sequelize.QueryTypes.SELECT,
+          type: QueryTypes.SELECT,
           transaction,
         });
         
@@ -193,7 +194,7 @@ export const createTransfer = async (req: Request, res: Response) => {
       await transaction.rollback();
       throw error;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating stock transfer:', error);
     return res.status(error.message?.includes('Not enough stock') ? 400 : 500).json({
       success: false,
@@ -257,7 +258,11 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
         }, { transaction: dbTransaction });
       } else if (status === TransferStatus.IN_TRANSIT) {
         // When moving to IN_TRANSIT, reduce inventory in source warehouse
-        for (const item of transfer.TransferItems) {
+        const transferItems = await TransferItem.findAll({
+          where: { transferId: transfer.id.toString() }
+        });
+        
+        for (const item of transferItems) {
           // Check current stock level
           const stockQuery = `
             SELECT COALESCE(SUM(CASE WHEN type = 'purchase' OR type = 'initial' THEN quantity 
@@ -272,7 +277,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
               productId: item.productId, 
               warehouseId: transfer.sourceWarehouseId 
             },
-            type: sequelize.QueryTypes.SELECT,
+            type: QueryTypes.SELECT,
             transaction: dbTransaction,
           });
           
@@ -307,7 +312,11 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
         }, { transaction: dbTransaction });
       } else if (status === TransferStatus.COMPLETED) {
         // When completing, add inventory to destination warehouse
-        for (const item of transfer.TransferItems) {
+        const transferItems = await TransferItem.findAll({
+          where: { transferId: transfer.id.toString() }
+        });
+        
+        for (const item of transferItems) {
           // Get current quantity at destination
           const stockQuery = `
             SELECT COALESCE(SUM(CASE WHEN type = 'purchase' OR type = 'initial' THEN quantity 
@@ -322,7 +331,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
               productId: item.productId, 
               warehouseId: transfer.destinationWarehouseId 
             },
-            type: sequelize.QueryTypes.SELECT,
+            type: QueryTypes.SELECT,
             transaction: dbTransaction,
           });
           
@@ -357,7 +366,11 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
       } else if (status === TransferStatus.CANCELLED) {
         // If it was in transit, add back to source warehouse
         if (currentStatus === TransferStatus.IN_TRANSIT) {
-          for (const item of transfer.TransferItems) {
+          const transferItems = await TransferItem.findAll({
+            where: { transferId: transfer.id.toString() }
+          });
+          
+          for (const item of transferItems) {
             // Get current quantity at source
             const stockQuery = `
               SELECT COALESCE(SUM(CASE WHEN type = 'purchase' OR type = 'initial' THEN quantity 
@@ -372,7 +385,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
                 productId: item.productId, 
                 warehouseId: transfer.sourceWarehouseId 
               },
-              type: sequelize.QueryTypes.SELECT,
+              type: QueryTypes.SELECT,
               transaction: dbTransaction,
             });
             
@@ -398,7 +411,11 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
           }
         } else {
           // Just update transfer item status
-          for (const item of transfer.TransferItems) {
+          const transferItems = await TransferItem.findAll({
+            where: { transferId: transfer.id.toString() }
+          });
+          
+          for (const item of transferItems) {
             await item.update({
               status: TransferItemStatus.CANCELLED,
             }, { transaction: dbTransaction });
@@ -431,7 +448,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
       await dbTransaction.rollback();
       throw error;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error updating transfer with ID ${id}:`, error);
     return res.status(error.message?.includes('Not enough stock') ? 400 : 500).json({
       success: false,
