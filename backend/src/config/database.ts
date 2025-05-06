@@ -6,8 +6,8 @@ dotenv.config();
 
 // Database configuration
 const dbName = process.env.DB_NAME || 'gold360_db';
-const dbUser = process.env.DB_USER || 'postgres';
-const dbPassword = process.env.DB_PASSWORD || 'postgres';
+const dbUser = process.env.DB_USER || 'gold360_user';
+const dbPassword = process.env.DB_PASSWORD || 'gold360pass';
 const dbHost = process.env.DB_HOST || 'localhost';
 const dbPort = parseInt(process.env.DB_PORT || '5432', 10);
 
