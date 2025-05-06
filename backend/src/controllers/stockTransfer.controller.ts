@@ -158,7 +158,7 @@ export const createTransfer = async (req: Request, res: Response) => {
         
         const currentStock = parseFloat((stockResult as any).current_quantity || 0);
         
-        if (currentStock < parseFloat(quantity)) {
+        if (currentStock < parseFloat(quantity.toString())) {
           throw new Error(`Not enough stock for product ID ${productId} in source warehouse. Available: ${currentStock}, Requested: ${quantity}`);
         }
         
@@ -283,7 +283,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
           
           const currentStock = parseFloat((sourceStockResult as any).current_quantity || 0);
           
-          if (currentStock < parseFloat(item.quantity)) {
+          if (currentStock < parseFloat(item.quantity.toString())) {
             throw new Error(`Not enough stock for product ID ${item.productId} in source warehouse. Available: ${currentStock}, Requested: ${item.quantity}`);
           }
           
@@ -297,7 +297,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
             notes: `Transfer to ${transfer.destinationWarehouseId} - ${transfer.transferCode}`,
             performedBy: userId,
             previousQuantity: currentStock,
-            newQuantity: currentStock - parseFloat(item.quantity),
+            newQuantity: currentStock - parseFloat(item.quantity.toString()),
           }, { transaction: dbTransaction });
           
           // Update transfer item status
@@ -347,7 +347,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
             notes: `Transfer from ${transfer.sourceWarehouseId} - ${transfer.transferCode}`,
             performedBy: userId,
             previousQuantity: currentDestStock,
-            newQuantity: currentDestStock + parseFloat(item.quantity),
+            newQuantity: currentDestStock + parseFloat(item.quantity.toString()),
           }, { transaction: dbTransaction });
           
           // Update transfer item status
@@ -401,7 +401,7 @@ export const updateTransferStatus = async (req: Request, res: Response) => {
               notes: `Cancelled transfer ${transfer.transferCode}`,
               performedBy: userId,
               previousQuantity: currentSourceStock,
-              newQuantity: currentSourceStock + parseFloat(item.quantity),
+              newQuantity: currentSourceStock + parseFloat(item.quantity.toString()),
             }, { transaction: dbTransaction });
             
             // Update transfer item status
