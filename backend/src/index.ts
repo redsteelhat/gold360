@@ -27,6 +27,7 @@ import reportRoutes from './routes/report.routes';
 import warehouseRoutes from './routes/warehouse.routes';
 import stockTransferRoutes from './routes/stockTransfer.routes';
 import securityRoutes from './routes/security.routes';
+import marketingRoutes from './routes/marketing.routes';
 
 // Initialize express app
 const app: Express = express();
@@ -108,6 +109,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/stock-transfers', stockTransferRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/marketing', marketingRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

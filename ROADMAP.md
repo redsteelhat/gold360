@@ -48,7 +48,7 @@ This document outlines the development plan for the Gold360 platform, including 
 - [x] Inventory management and stock module
 - [x] CRM and customer relations module
 - [x] Reporting and analytics module
-- [ ] Marketing management module
+- [x] Marketing management module
 - [ ] Operational tools (ERP, etc.) module
 - [ ] Shipping and logistics integrations
 - [ ] Visual management and AR module (third-party API integrations)
