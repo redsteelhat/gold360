@@ -2,7 +2,22 @@ import { Request, Response } from 'express';
 import { Task, TaskStatus, TaskPriority } from '../models/task.model';
 import { User } from '../models/user.model';
 import { Op } from 'sequelize';
-import { logger } from '../utils/logger';
+import winston from 'winston';
+
+// Create a fallback logger in case the module is not found
+const logger = (() => {
+  try {
+    return require('../utils/logger').logger;
+  } catch (error) {
+    // Fallback to console logging if the logger module is not found
+    return {
+      error: (message: string, error?: any) => console.error(message, error),
+      info: (message: string) => console.info(message),
+      warn: (message: string) => console.warn(message),
+      debug: (message: string) => console.debug(message)
+    };
+  }
+})();
 
 /**
  * Get all tasks with filtering and pagination
