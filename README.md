@@ -1,119 +1,118 @@
-# Gold360 - Comprehensive Digital Platform for Jewelry Businesses
+# Gold360 Platform
 
-Gold360 is a comprehensive digital platform designed specifically for jewelry businesses, offering a wide range of features from e-commerce solutions to inventory management, CRM, and more.
+Gold360 is a comprehensive digital platform designed specifically for jewelers, providing a complete suite of tools for e-commerce, inventory management, CRM, and business operations.
 
-## Features
+## Project Overview
 
-- **E-Commerce & Sales Module**: Online jewelry sales with detailed product listings
-- **Inventory & Stock Management**: Real-time stock tracking across multiple locations
-- **CRM & Customer Loyalty**: Customer segmentation and loyalty program management
-- **Reporting & Analytics**: Visual dashboards and performance metrics
-- **Mobile Application**: iOS and Android apps with AR try-on functionality
-- **Digital Marketing Management**: SEO analysis and social media campaign management
-- **Website Builder**: Drag-and-drop website creation for jewelry businesses
-- **Security & Compliance**: GDPR and KVKK compliance
-- **Order & Logistics**: Order tracking and shipping integrations
-- **Live Support**: Chat, chatbot, and video consultation
-- **Visual Management**: 360-degree product images and virtual store tours
-- **Operations Management**: Staff scheduling and performance tracking
+The Gold360 platform consists of several integrated modules designed to serve the specific needs of jewelry businesses:
 
-## Tech Stack
+1. **E-Commerce & Sales Module**
+2. **Inventory & Stock Management Module**
+3. **CRM & Customer Loyalty Module**
+4. **Reporting & Analytics Module**
+5. **Mobile Application Module**
+6. **Digital Marketing Management Module**
+7. **Website Builder & Admin Panel**
+8. **Security & Compliance Module**
+9. **Order & Logistics Management Module**
+10. **Live Support & Digital Experience Module**
+11. **Visual Management & Virtual Store Module**
+12. **Operations & Personnel Management Module**
 
-- **Frontend**: React with Next.js, TypeScript, Tailwind CSS
-- **Backend**: Node.js with Express, TypeScript, PostgreSQL with Sequelize ORM
-- **Mobile**: React Native (planned)
-- **Cloud**: AWS / Google Cloud (infrastructure setup planned)
-- **DevOps**: Docker, GitHub Actions, CI/CD (pipeline setup planned)
+## Project Structure
 
-## Project Status
+```
+gold360/
+├── docs/                    # Documentation files
+├── backend/                 # Node.js + Express + TypeScript backend
+├── frontend/                # Next.js web application
+├── mobile/                  # React Native mobile application
+└── infrastructure/          # Infrastructure as code (if applicable)
+```
 
-⚠️ **Important Note**: This project is currently in early development stage. The codebase has been scaffolded with basic structure, but there are TypeScript and linter errors that need to be addressed before the project can be fully functional.
+## Technology Stack
 
-### Current Progress:
-- ✅ Project structure set up
-- ✅ Basic frontend components (landing page, dashboard layout)
-- ✅ Backend API structure
-- ✅ Database models definition
-- ❌ Need to install types and fix TypeScript errors
-- ❌ Need to set up proper database connection
-- ❌ Need to implement authentication flow
+### Backend
+- **Framework:** Node.js with Express.js
+- **Language:** TypeScript
+- **Database:** PostgreSQL
+- **ORM:** Sequelize
+- **Authentication:** JWT
+
+### Frontend (Web)
+- **Framework:** React with Next.js
+- **State Management:** Redux or Context API
+- **UI Library:** Custom components
+- **Styling:** Styled Components or Tailwind CSS
+
+### Mobile
+- **Framework:** React Native
+- **Platform:** iOS and Android
+- **AR Integration:** ARKit (iOS) and ARCore (Android)
+
+### DevOps
+- **CI/CD:** GitHub Actions
+- **Containerization:** Docker
+- **Cloud Provider:** AWS or Google Cloud Platform
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js (v18+)
 - PostgreSQL
 - Git
 
-### Installation
+### Development Setup
+1. Clone the repository
+```bash
+git clone https://github.com/your-org/gold360.git
+cd gold360
+```
 
-1. Clone the repository:
-   ```
-   git clone https://your-repository-url/gold360.git
-   cd gold360
-   ```
+2. Install dependencies
+```bash
+# Install backend dependencies
+cd backend
+npm install
 
-2. Install dependencies:
-   ```
-   npm run install:all
-   ```
+# Install frontend dependencies
+cd ../frontend
+npm install
 
-3. Install missing TypeScript types:
-   ```
-   cd frontend
-   npm install --save-dev @types/react @types/react-dom @types/node
-   cd ../backend
-   npm install --save-dev @types/node @types/express @types/sequelize @types/bcryptjs @types/jsonwebtoken
-   ```
+# Install mobile dependencies
+cd ../mobile
+npm install
+```
 
-4. Configure environment variables:
-   - Copy `.env.example` to `.env` in both frontend and backend directories
-   - Update the values according to your environment
+3. Setup the environment variables
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
 
-5. Start development servers:
-   ```
-   npm run dev
-   ```
+4. Start the development servers
+```bash
+# Start backend
+cd backend
+npm run dev
 
-## Development Plan
+# Start frontend
+cd ../frontend
+npm run dev
 
-1. **Phase 1: Core Setup** (Current)
-   - Basic project structure
-   - Authentication system
-   - Database models
+# Start mobile
+cd ../mobile
+npm run start
+```
 
-2. **Phase 2: E-Commerce & Inventory Modules**
-   - Product management
-   - Order processing
-   - Inventory tracking
+## Development Roadmap
 
-3. **Phase 3: CRM & Customer Management**
-   - Customer profiles
-   - Loyalty program
-   - Marketing automation
+See the [ROADMAP.md](ROADMAP.md) file for the detailed development plan and timeline.
 
-4. **Phase 4: Reporting & Analytics**
-   - Dashboard visualizations
-   - Custom reports
-   - Business intelligence
+## Contributing
 
-5. **Phase 5: Mobile Application**
-   - Mobile UI components
-   - React Native implementation
-   - AR features integration
-
-## Project Structure
-
-- `frontend/`: Next.js application with Tailwind CSS
-- `backend/`: Express API server with TypeScript
-- `docs/`: Documentation and resources
-- `scripts/`: Utility scripts for development and deployment
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
-© 2023 Gold360. All Rights Reserved.
-
-## Contact
-
-For any inquiries, please contact support@gold360.com # gold360
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 

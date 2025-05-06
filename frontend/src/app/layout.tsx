@@ -1,23 +1,10 @@
-import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
-
-// Import global CSS
-import './globals.css';
-
-// Import Inter font
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter'
-});
+import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Gold360 - Kuyumcu Yönetim Sistemi',
-  description: 'Kuyumcu işletmeleri için eksiksiz dijital çözüm',
-  keywords: 'kuyumcu, e-ticaret, CRM, envanter yönetimi, altın, perakende, dijital platform',
+  title: 'Gold360 - Complete Jewelry Business Platform',
+  description: 'Manage your jewelry business with our all-in-one platform. E-commerce, inventory, CRM and more.',
+  keywords: 'jewelry, gold, e-commerce, inventory management, CRM, business platform',
 };
 
 export default function RootLayout({
@@ -26,12 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr" className={inter.variable}>
-      <body className="bg-bg-light min-h-screen">
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+    <html lang="en">
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>
+        {children}
       </body>
     </html>
   );

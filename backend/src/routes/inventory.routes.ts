@@ -1,21 +1,53 @@
-import { Router } from 'express';
-import inventoryController from '../controllers/inventory.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import express from 'express';
+import { authenticate, authorize } from '../middlewares/auth.middleware';
+import { UserRole } from '../models/user.model';
 
-const router = Router();
+const router = express.Router();
 
-// Apply auth middleware to all inventory routes
-router.use(authMiddleware);
+/**
+ * @swagger
+ * /api/inventory:
+ *   get:
+ *     summary: Get inventory status
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Inventory status retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Failed to get inventory status
+ */
+router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]), (req, res) => {
+  // Placeholder for inventory listing functionality
+  res.status(200).json({ message: 'Inventory listing functionality will be implemented' });
+});
 
-// Inventory routes
-router.get('/', inventoryController.getAllInventory);
-router.get('/:id', inventoryController.getInventoryById);
-router.post('/', inventoryController.createInventoryItem);
-router.put('/:id', inventoryController.updateInventoryItem);
-router.delete('/:id', inventoryController.deleteInventoryItem);
-router.post('/:id/adjust', inventoryController.adjustInventory);
-router.get('/barcode/:barcode', inventoryController.getInventoryByBarcode);
-router.get('/rfid/:rfidTag', inventoryController.getInventoryByRfid);
-router.post('/log-stock-check', inventoryController.logStockCheck);
+/**
+ * @swagger
+ * /api/inventory/low-stock:
+ *   get:
+ *     summary: Get low stock items
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Low stock items retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Failed to get low stock items
+ */
+router.get('/low-stock', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER]), (req, res) => {
+  // Placeholder for low stock items functionality
+  res.status(200).json({ message: 'Low stock items functionality will be implemented' });
+});
 
 export default router; 

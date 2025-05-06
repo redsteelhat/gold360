@@ -1,309 +1,187 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models';
+import bcrypt from 'bcryptjs';
+import { User, UserRole } from '../models/user.model';
+
+// JWT Secret from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'gold360_jwt_secret';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
- * @swagger
- * tags:
- *   name: Authentication
- *   description: User authentication operations
+ * Register a new user
  */
+export const register = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password, firstName, lastName, phone, role } = req.body;
 
-class AuthController {
-  /**
-   * @swagger
-   * /api/auth/register:
-   *   post:
-   *     summary: Register a new user
-   *     tags: [Authentication]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - name
-   *               - email
-   *               - password
-   *             properties:
-   *               name:
-   *                 type: string
-   *                 description: User's full name
-   *               email:
-   *                 type: string
-   *                 format: email
-   *                 description: User's email address
-   *               password:
-   *                 type: string
-   *                 format: password
-   *                 description: User's password (min 6 characters)
-   *               role:
-   *                 type: string
-   *                 enum: [admin, manager, staff, customer]
-   *                 default: customer
-   *                 description: User role (optional, defaults to customer)
-   *     responses:
-   *       201:
-   *         description: User registered successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 message:
-   *                   type: string
-   *                 token:
-   *                   type: string
-   *                 user:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                     name:
-   *                       type: string
-   *                     email:
-   *                       type: string
-   *                     role:
-   *                       type: string
-   *       400:
-   *         description: Email already in use or invalid input
-   *       500:
-   *         description: Server error
-   */
-  public register = async (req: Request, res: Response): Promise<Response> => {
-    try {
-      const { name, email, password, role } = req.body;
-
-      // Check if user exists
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email already in use',
-        });
-      }
-
-      // Create user
-      const user = await User.create({
-        name,
-        email,
-        password,
-        role: role || 'customer',
-      });
-
-      // Generate token
-      const token = this.generateToken(user);
-
-      return res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error('Registration error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error',
-      });
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ message: 'User with this email already exists' });
+      return;
     }
-  }
 
-  /**
-   * @swagger
-   * /api/auth/login:
-   *   post:
-   *     summary: Login user and get token
-   *     tags: [Authentication]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - email
-   *               - password
-   *             properties:
-   *               email:
-   *                 type: string
-   *                 format: email
-   *                 description: User's email address
-   *               password:
-   *                 type: string
-   *                 format: password
-   *                 description: User's password
-   *     responses:
-   *       200:
-   *         description: Login successful
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 message:
-   *                   type: string
-   *                 token:
-   *                   type: string
-   *                 user:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                     name:
-   *                       type: string
-   *                     email:
-   *                       type: string
-   *                     role:
-   *                       type: string
-   *       400:
-   *         description: Missing required fields
-   *       401:
-   *         description: Invalid credentials
-   *       500:
-   *         description: Server error
-   */
-  public login = async (req: Request, res: Response): Promise<Response> => {
-    try {
-      const { email, password } = req.body;
-
-      // Validate input
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please provide email and password',
-        });
-      }
-
-      // Check if user exists
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials',
-        });
-      }
-
-      // Check if password matches
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials',
-        });
-      }
-
-      // Update last login
-      await user.update({
-        lastLoginAt: new Date(),
-      });
-
-      // Generate token
-      const token = this.generateToken(user);
-
-      return res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error',
-      });
+    // Only allow admins to create admin or manager accounts
+    if ((role === UserRole.ADMIN || role === UserRole.MANAGER) && 
+        (!req.user || req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'You do not have permission to create this user type' });
+      return;
     }
-  }
 
-  /**
-   * @swagger
-   * /api/auth/me:
-   *   get:
-   *     summary: Get current user profile
-   *     tags: [Authentication]
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: Current user data
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 user:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                     name:
-   *                       type: string
-   *                     email:
-   *                       type: string
-   *                     role:
-   *                       type: string
-   *       401:
-   *         description: Not authenticated
-   *       500:
-   *         description: Server error
-   */
-  public getMe = async (req: Request, res: Response): Promise<Response> => {
-    try {
-      // User is attached to request in auth middleware
-      const user = (req as any).user;
-      
-      return res.status(200).json({
-        success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error('Get me error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error',
-      });
-    }
-  }
-
-  /**
-   * Generate JWT token
-   */
-  private generateToken = (user: any): string => {
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
-    
-    // @ts-ignore - Ignoring type issues with JWT
-    return jwt.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret_key', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1d'
+    // Create new user
+    const newUser = await User.create({
+      email,
+      password,
+      firstName,
+      lastName,
+      phone,
+      role: role || UserRole.CUSTOMER,
+      isActive: true,
     });
-  }
-}
 
-export default new AuthController(); 
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: newUser.id, email: newUser.email, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Return user info and token
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: newUser,
+      token,
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Registration failed', error: (error as Error).message });
+  }
+};
+
+/**
+ * User login
+ */
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      res.status(401).json({ message: 'Invalid email or password' });
+      return;
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      res.status(401).json({ message: 'Your account has been deactivated' });
+      return;
+    }
+
+    // Verify password
+    const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) {
+      res.status(401).json({ message: 'Invalid email or password' });
+      return;
+    }
+
+    // Update last login time
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Return user info and token
+    res.status(200).json({
+      message: 'Login successful',
+      user,
+      token,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Login failed', error: (error as Error).message });
+  }
+};
+
+/**
+ * Get the current user's profile
+ */
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // User should be attached by the auth middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'Profile retrieved successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Failed to get profile', error: (error as Error).message });
+  }
+};
+
+/**
+ * Change password
+ */
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Verify current password
+    const isPasswordValid = await user.validatePassword(currentPassword);
+    if (!isPasswordValid) {
+      res.status(401).json({ message: 'Current password is incorrect' });
+      return;
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Failed to change password', error: (error as Error).message });
+  }
+};
+
+/**
+ * Verify JWT Token
+ */
+export const verifyToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // At this point, the user has been authenticated by the middleware
+    res.status(200).json({ valid: true, user: req.user });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(500).json({ message: 'Failed to verify token', error: (error as Error).message });
+  }
+}; 

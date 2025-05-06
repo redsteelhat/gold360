@@ -1,161 +1,112 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-
-// Form validasyon şeması
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Geçerli bir e-posta adresi giriniz' }),
-  password: z.string().min(6, { message: 'Şifre en az 6 karakter olmalıdır' }),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Form oluşturma
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-  // Form gönderme
-  const onSubmit = async (data: LoginFormValues) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
     try {
-      await login(data.email, data.password);
+      // This is a placeholder, we'll implement actual login functionality later
+      console.log('Login attempt with:', { email, password });
       
-      // Başarılı bildirim göster
-      toast({
-        title: 'Giriş Başarılı',
-        description: 'Hoşgeldiniz! Dashboard\'a yönlendiriliyorsunuz.',
-      });
-    } catch (error: any) {
-      console.error('Login error:', error);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      let errorMessage = 'Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.';
+      // Redirect to dashboard after successful login
+      // Implement the actual login logic here
       
-      if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage = 'Geçersiz e-posta veya şifre. Lütfen bilgilerinizi kontrol edin.';
-        } else if (error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
-      }
-      
-      toast({
-        title: 'Giriş Başarısız',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
       setIsLoading(false);
+    } catch (err) {
+      setIsLoading(false);
+      setError('Login failed. Please check your credentials and try again.');
+      console.error('Login error:', err);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-white to-bg-light px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-text-primary">
-            <span className="text-gold-primary">Gold</span>360
-          </h1>
-          <p className="text-text-secondary mt-2">Jewelry Management System</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-primary mb-2">Gold360</h1>
+          <h2 className="text-2xl font-semibold text-secondary mb-1">Welcome Back</h2>
+          <p className="text-gray-500">Log in to your account to continue</p>
         </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Giriş Yap</CardTitle>
-            <CardDescription>
-              Hesabınıza giriş yapmak için bilgilerinizi girin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-posta</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="ornek@email.com" 
-                          type="email" 
-                          autoComplete="email"
-                          disabled={isLoading}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Şifre</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          autoComplete="current-password"
-                          disabled={isLoading}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-center text-muted-foreground">
-              <Link href="/forgot-password" className="text-gold-primary hover:underline">
-                Şifrenizi mi unuttunuz?
-              </Link>
+
+        <div className="card p-8">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-error p-4 mb-6 rounded-md">
+              <p className="text-error">{error}</p>
             </div>
-            <div className="text-sm text-center text-muted-foreground">
-              Henüz hesabınız yok mu?{' '}
-              <Link href="/register" className="text-gold-primary hover:underline">
-                Kayıt Ol
-              </Link>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label htmlFor="email" className="label">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="input"
+                placeholder="Your email address"
+              />
             </div>
-          </CardFooter>
-        </Card>
+
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-1">
+                <label htmlFor="password" className="label">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-primary hover:text-primary-600"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="input"
+                placeholder="Your password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary w-full py-3"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Log In'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="text-primary hover:text-primary-600">
+                Register here
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

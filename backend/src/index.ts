@@ -1,0 +1,138 @@
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import { rateLimit } from 'express-rate-limit';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import { connectDatabase } from './config/database';
+
+// Import models to register them
+import './models';
+
+// Load environment variables
+dotenv.config();
+
+// Import routes
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import productRoutes from './routes/product.routes';
+import orderRoutes from './routes/order.routes';
+import inventoryRoutes from './routes/inventory.routes';
+import customerRoutes from './routes/customer.routes';
+import reportRoutes from './routes/report.routes';
+
+// Initialize express app
+const app: Express = express();
+const port = process.env.PORT || 3000;
+
+// Swagger setup
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Gold360 API',
+      version: '1.0.0',
+      description: 'API documentation for Gold360 platform',
+      contact: {
+        name: 'Gold360 Team',
+      },
+      servers: [
+        {
+          url: 'http://localhost:3000',
+          description: 'Development server',
+        },
+      ],
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+  },
+  apis: ['./src/routes/*.ts'],
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+
+// Middleware
+app.use(cors());
+app.use(helmet());
+app.use(compression());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per window
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+app.use(limiter);
+
+// Routes
+app.get('/', (req: Request, res: Response) => {
+  res.send('Gold360 API is running');
+});
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : {},
+  });
+});
+
+// 404 Route
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Start server
+const startServer = async (): Promise<void> => {
+  try {
+    // Connect to the database
+    await connectDatabase();
+    
+    // Start the server
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+      });
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
+
+export default app; 
