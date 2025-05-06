@@ -45,7 +45,7 @@ This document outlines the development plan for the Gold360 platform, including 
 ### Module-Based API Development
 - [x] Authentication and authorization (JWT-based)
 - [ ] E-commerce module (product, order, payment systems)
-- [ ] Inventory management and stock module
+- [x] Inventory management and stock module
 - [ ] CRM and customer relations module
 - [ ] Reporting and analytics module
 - [ ] Marketing management module
