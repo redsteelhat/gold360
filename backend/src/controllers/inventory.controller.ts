@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import sequelize from '../config/database';
+import { QueryTypes } from 'sequelize';
 import { Product } from '../models/product.model';
 import { Warehouse } from '../models/warehouse.model';
 import { StockTransaction, TransactionType } from '../models/stockTransaction.model';
@@ -31,7 +32,7 @@ export const getInventory = async (req: Request, res: Response) => {
     const replacements = warehouseId ? { warehouseId } : {};
     const inventory = await sequelize.query(query, {
       replacements,
-      type: sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     });
     
     return res.status(200).json({
@@ -78,7 +79,7 @@ export const getProductInventory = async (req: Request, res: Response) => {
     
     const inventoryByWarehouse = await sequelize.query(query, {
       replacements: { productId },
-      type: sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     });
     
     // Get recent transactions
@@ -149,7 +150,7 @@ export const addStock = async (req: Request, res: Response) => {
     
     const [currentQuantityResult] = await sequelize.query(currentQuantityQuery, {
       replacements: { productId, warehouseId },
-      type: sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     });
     
     const currentQuantity = parseFloat((currentQuantityResult as any).current_quantity || 0);
@@ -254,7 +255,7 @@ export const adjustStock = async (req: Request, res: Response) => {
     
     const [currentQuantityResult] = await sequelize.query(currentQuantityQuery, {
       replacements: { productId, warehouseId },
-      type: sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     });
     
     const currentQuantity = parseFloat((currentQuantityResult as any).current_quantity || 0);
