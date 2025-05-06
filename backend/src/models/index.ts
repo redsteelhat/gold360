@@ -21,6 +21,8 @@ import { SocialMediaPost } from './socialMediaPost.model';
 import { Task, associateTask } from './task.model';
 import { Shift, associateShift } from './shift.model';
 import { Note, associateNote } from './note.model';
+import Shipping from './shipping.model';
+import ShippingProvider from './shippingProvider.model';
 
 // Associate models
 export const associateModels = () => {
@@ -56,6 +58,8 @@ export {
   Task,
   Shift,
   Note,
+  Shipping,
+  ShippingProvider,
 };
 
 export default {
@@ -82,4 +86,6 @@ export default {
   Task,
   Shift,
   Note,
+  Shipping,
+  ShippingProvider,
 }; 

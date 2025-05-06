@@ -50,7 +50,7 @@ This document outlines the development plan for the Gold360 platform, including 
 - [x] Reporting and analytics module
 - [x] Marketing management module
 - [x] Operational tools (ERP, etc.) module
-- [ ] Shipping and logistics integrations
+- [x] Shipping and logistics integrations
 - [ ] Visual management and AR module (third-party API integrations)
 
 ### Security and Compliance
@@ -74,7 +74,7 @@ This document outlines the development plan for the Gold360 platform, including 
 
 - [ ] Implement API integration with online payment providers (Iyzico, PayTR, Stripe)
 - [ ] Integrate e-invoice, digital invoice providers
-- [ ] Set up shipping company and logistics integrations (Aras, Yurtiçi, etc.)
+- [x] Set up shipping company and logistics integrations (Aras, Yurtiçi, etc.)
 - [ ] Incorporate AR-supported virtual try-on and product visuals API integrations (ARKit, ARCore)
 
 ## 6. Testing and Quality Control (4-6 weeks)

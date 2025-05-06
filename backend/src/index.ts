@@ -29,6 +29,7 @@ import stockTransferRoutes from './routes/stockTransfer.routes';
 import securityRoutes from './routes/security.routes';
 import marketingRoutes from './routes/marketing.routes';
 import operationalRoutes from './routes/operational.routes';
+import shippingRoutes from './routes/shipping.routes';
 
 // Initialize express app
 const app: Express = express();
@@ -112,6 +113,7 @@ app.use('/api/stock-transfers', stockTransferRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/operational', operationalRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
