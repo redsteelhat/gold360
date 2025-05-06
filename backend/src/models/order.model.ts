@@ -1,6 +1,7 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, BelongsTo, HasMany, ForeignKey, BeforeCreate, Default } from 'sequelize-typescript';
 import { User } from './user.model';
 import { OrderItem } from './orderItem.model';
+import { Customer } from './customer.model';
 
 export enum OrderStatus {
   PENDING = 'pending',
@@ -8,8 +9,8 @@ export enum OrderStatus {
   SHIPPED = 'shipped',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
-  REFUNDED = 'refunded',
-  COMPLETED = 'completed'
+  RETURNED = 'returned',
+  REFUNDED = 'refunded'
 }
 
 export enum PaymentStatus {
@@ -24,187 +25,152 @@ export enum PaymentMethod {
   CREDIT_CARD = 'credit_card',
   BANK_TRANSFER = 'bank_transfer',
   CASH_ON_DELIVERY = 'cash_on_delivery',
-  WALLET = 'wallet'
+  DIGITAL_WALLET = 'digital_wallet'
 }
 
 @Table({
   tableName: 'orders',
-  timestamps: true,
+  timestamps: true
 })
 export class Order extends Model {
   @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  id!: number;
-
-  @Column({
     type: DataType.STRING,
-    allowNull: false,
     unique: true,
+    allowNull: false
   })
   orderNumber!: string;
 
-  @ForeignKey(() => User)
+  @ForeignKey(() => Customer)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: false
   })
   customerId!: number;
 
-  @BelongsTo(() => User, 'customerId')
-  customer!: User;
+  @BelongsTo(() => Customer)
+  customer!: Customer;
 
   @Column({
-    type: DataType.ENUM,
+    type: DataType.ENUM(...Object.values(OrderStatus)),
     values: Object.values(OrderStatus),
     defaultValue: OrderStatus.PENDING,
-    allowNull: false,
+    allowNull: false
   })
   status!: OrderStatus;
 
   @Column({
-    type: DataType.ENUM,
+    type: DataType.ENUM(...Object.values(PaymentStatus)),
     values: Object.values(PaymentStatus),
     defaultValue: PaymentStatus.PENDING,
-    allowNull: false,
+    allowNull: false
   })
   paymentStatus!: PaymentStatus;
 
   @Column({
-    type: DataType.ENUM,
+    type: DataType.ENUM(...Object.values(PaymentMethod)),
     values: Object.values(PaymentMethod),
     defaultValue: PaymentMethod.CREDIT_CARD,
-    allowNull: false,
+    allowNull: false
   })
   paymentMethod!: PaymentMethod;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0
   })
   subtotal!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0
   })
-  tax!: number;
+  taxAmount!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0
   })
-  shippingCost!: number;
+  shippingAmount!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0
   })
-  discount!: number;
+  discountAmount!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0
   })
-  total!: number;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  couponCode?: string;
-
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-  })
-  shippingAddress!: object;
-
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-  })
-  billingAddress!: object;
+  totalAmount!: number;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true,
+    allowNull: true
   })
-  customerNotes?: string;
-
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  adminNotes?: string;
+  notes?: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: true,
+    allowNull: true
   })
   trackingNumber?: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: true,
+    allowNull: true
   })
-  shippingCarrier?: string;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  shippedAt?: Date;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  deliveredAt?: Date;
+  shippingMethod?: string;
 
   @Column({
     type: DataType.JSONB,
-    allowNull: true,
+    allowNull: false
   })
-  paymentDetails?: object;
+  shippingAddress!: object;
 
   @Column({
-    type: DataType.STRING,
-    allowNull: true,
+    type: DataType.JSONB,
+    allowNull: false
   })
-  invoiceNumber?: string;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  invoiceDate?: Date;
-
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  isGift!: boolean;
+  billingAddress!: object;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true,
+    allowNull: true
   })
-  giftMessage?: string;
+  customerNotes?: string;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true
+  })
+  paymentDetails?: object;
 
   @HasMany(() => OrderItem)
   items!: OrderItem[];
 
-  // Helper method to calculate total
-  calculateTotal(): number {
-    return (this.subtotal + this.tax + this.shippingCost) - this.discount;
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
+  })
+  processedBy?: number;
+
+  @BelongsTo(() => User, 'processedBy')
+  processor?: User;
+
+  @BeforeCreate
+  static generateOrderNumber(instance: Order) {
+    const prefix = 'ORD';
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    instance.orderNumber = `${prefix}-${timestamp}-${random}`;
   }
-} 
+}
+
+export default Order; 
