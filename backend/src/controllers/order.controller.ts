@@ -480,8 +480,8 @@ function isValidStatusTransition(currentStatus: OrderStatus, newStatus: OrderSta
     [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
     [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
     [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
-    [OrderStatus.DELIVERED]: [OrderStatus.COMPLETED, OrderStatus.REFUNDED],
-    [OrderStatus.COMPLETED]: [OrderStatus.REFUNDED],
+    [OrderStatus.DELIVERED]: [OrderStatus.RETURNED, OrderStatus.REFUNDED],
+    [OrderStatus.RETURNED]: [OrderStatus.REFUNDED],
     [OrderStatus.CANCELLED]: [],
     [OrderStatus.REFUNDED]: []
   };
