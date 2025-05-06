@@ -84,8 +84,8 @@ export const secureCookies = (req: Request, res: Response, next: NextFunction): 
       maxAge: options.maxAge || 1000 * 60 * 60 * 24, // 24 hours default
     };
     
-    // Call the original cookie method with the right context and proper arguments
-    return originalCookie.call(this, name, value, secureOptions);
+    // Call the original cookie method directly with the arguments
+    return originalCookie.bind(this)(name, value, secureOptions);
   };
   
   next();
