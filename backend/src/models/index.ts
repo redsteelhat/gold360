@@ -18,35 +18,20 @@ import { MarketingCampaignRecipient } from './marketingCampaignRecipient.model';
 import { MarketingTemplate } from './marketingTemplate.model';
 import { SocialMediaAccount } from './socialMediaAccount.model';
 import { SocialMediaPost } from './socialMediaPost.model';
+import { Task, associateTask } from './task.model';
+import { Shift, associateShift } from './shift.model';
+import { Note, associateNote } from './note.model';
 
-// Register models
-const models = [
-  User,
-  Product,
-  Warehouse,
-  StockTransaction,
-  StockAlert,
-  StockTransfer,
-  TransferItem,
-  Order,
-  OrderItem,
-  Customer,
-  DataPrivacy,
-  DataAccessLog,
-  DataRequest,
-  DataBreachLog,
-  MarketingCampaign,
-  MarketingCampaignRecipient,
-  MarketingTemplate,
-  SocialMediaAccount,
-  SocialMediaPost,
-  // Add more models as they are created
-];
+// Associate models
+export const associateModels = () => {
+  // Call association methods from model files
+  associateTask();
+  associateShift();
+  associateNote();
+  // Add other association calls as needed
+};
 
-// Initialize models with sequelize
-sequelize.addModels(models);
-
-// Define relationships between models
+// Export models
 export {
   sequelize,
   User,
@@ -68,7 +53,9 @@ export {
   MarketingTemplate,
   SocialMediaAccount,
   SocialMediaPost,
-  // Export more models as they are created
+  Task,
+  Shift,
+  Note,
 };
 
 export default {
@@ -92,5 +79,7 @@ export default {
   MarketingTemplate,
   SocialMediaAccount,
   SocialMediaPost,
-  // Export more models as they are created
+  Task,
+  Shift,
+  Note,
 }; 
