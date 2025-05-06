@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User, UserRole } from '../models/user.model';
 
@@ -42,8 +42,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Generate JWT token
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
+      JWT_SECRET as Secret,
+      { expiresIn: JWT_EXPIRES_IN } as SignOptions
     );
 
     // Return user info and token
@@ -92,8 +92,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Generate JWT token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
+      JWT_SECRET as Secret,
+      { expiresIn: JWT_EXPIRES_IN } as SignOptions
     );
 
     // Return user info and token
