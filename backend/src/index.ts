@@ -8,6 +8,7 @@ import { rateLimit } from 'express-rate-limit';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { connectDatabase } from './config/database';
+import { enhancedSecurityHeaders, secureCookies, sqlInjectionProtection } from './middlewares/security.middleware';
 
 // Import models to register them
 import './models';
@@ -25,6 +26,7 @@ import customerRoutes from './routes/customer.routes';
 import reportRoutes from './routes/report.routes';
 import warehouseRoutes from './routes/warehouse.routes';
 import stockTransferRoutes from './routes/stockTransfer.routes';
+import securityRoutes from './routes/security.routes';
 
 // Initialize express app
 const app: Express = express();
@@ -63,13 +65,22 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
-// Middleware
-app.use(cors());
+// Basic middleware
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*', // Restrict to allowed origins in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 86400, // 24 hours
+}));
 app.use(helmet());
+app.use(enhancedSecurityHeaders());
 app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' })); // Limit payload size
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(morgan('dev'));
+app.use(secureCookies);
+app.use(sqlInjectionProtection);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -96,6 +107,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/stock-transfers', stockTransferRoutes);
+app.use('/api/security', securityRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -117,19 +129,30 @@ const startServer = async (): Promise<void> => {
     // Connect to the database
     await connectDatabase();
     
-    // Start the server
+    // Start the server with graceful shutdown
     const server = app.listen(port, () => {
       console.log(`Server running on port ${port}`);
+      console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
     });
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
+    const gracefulShutdown = (signal: string): void => {
+      console.log(`${signal} signal received: closing HTTP server`);
       server.close(() => {
         console.log('HTTP server closed');
         process.exit(0);
       });
-    });
+
+      // Force close after 10s
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle shutdown signals
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
