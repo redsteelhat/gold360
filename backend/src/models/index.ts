@@ -9,6 +9,10 @@ import { TransferItem } from './transferItem.model';
 import { Order } from './order.model';
 import { OrderItem } from './orderItem.model';
 import { Customer } from './customer.model';
+import { DataPrivacy } from './dataPrivacy.model';
+import { DataAccessLog } from './dataAccessLog.model';
+import { DataRequest } from './dataRequest.model';
+import { DataBreachLog } from './dataBreachLog.model';
 
 // Register models
 const models = [
@@ -22,6 +26,10 @@ const models = [
   Order,
   OrderItem,
   Customer,
+  DataPrivacy,
+  DataAccessLog,
+  DataRequest,
+  DataBreachLog,
   // Add more models as they are created
 ];
 
@@ -41,6 +49,10 @@ export {
   Order,
   OrderItem,
   Customer,
+  DataPrivacy,
+  DataAccessLog,
+  DataRequest,
+  DataBreachLog,
   // Export more models as they are created
 };
 
@@ -56,5 +68,9 @@ export default {
   Order,
   OrderItem,
   Customer,
+  DataPrivacy,
+  DataAccessLog,
+  DataRequest,
+  DataBreachLog,
   // Export more models as they are created
 }; 
