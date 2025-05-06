@@ -1,8 +1,9 @@
-import express from 'express';
+import { Router } from 'express';
+import * as orderController from '../controllers/order.controller';
 import { authenticate, authorize } from '../middlewares/auth.middleware';
 import { UserRole } from '../models/user.model';
 
-const router = express.Router();
+const router = Router();
 
 /**
  * @swagger
@@ -22,10 +23,12 @@ const router = express.Router();
  *       500:
  *         description: Failed to get orders
  */
-router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER]), (req, res) => {
-  // Placeholder for order listing functionality
-  res.status(200).json({ message: 'Order listing functionality will be implemented' });
-});
+router.get(
+  '/',
+  authenticate,
+  authorize([UserRole.ADMIN, UserRole.MANAGER]),
+  orderController.getAllOrders
+);
 
 /**
  * @swagger
@@ -54,9 +57,40 @@ router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.MANAGER]), (re
  *       500:
  *         description: Failed to get order
  */
-router.get('/:id', authenticate, (req, res) => {
-  // Placeholder for get order functionality
-  res.status(200).json({ message: 'Get order functionality will be implemented' });
-});
+router.get(
+  '/:id',
+  authenticate,
+  orderController.getOrderById
+);
+
+// Create a new order
+router.post(
+  '/',
+  authenticate,
+  orderController.createOrder
+);
+
+// Update order status (admin, manager)
+router.patch(
+  '/:id/status',
+  authenticate,
+  authorize([UserRole.ADMIN, UserRole.MANAGER]),
+  orderController.updateOrderStatus
+);
+
+// Update payment status (admin, manager)
+router.patch(
+  '/:id/payment',
+  authenticate,
+  authorize([UserRole.ADMIN, UserRole.MANAGER]),
+  orderController.updatePaymentStatus
+);
+
+// Cancel order
+router.post(
+  '/:id/cancel',
+  authenticate,
+  orderController.cancelOrder
+);
 
 export default router; 
