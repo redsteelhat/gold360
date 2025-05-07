@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50">
@@ -17,24 +19,54 @@ export default function Home() {
             {
               title: 'E-Commerce & Sales',
               description: 'Sell your jewelry online with a beautiful catalog and seamless checkout experience.',
+              link: '#',
             },
             {
               title: 'Inventory Management',
               description: 'Track your inventory in real-time with complete visibility across multiple locations.',
+              link: '#',
             },
             {
               title: 'CRM & Loyalty',
               description: 'Build lasting customer relationships with personalized marketing and loyalty programs.',
+              link: '#',
             },
             {
               title: 'Business Analytics',
               description: 'Make data-driven decisions with comprehensive reports and analytics dashboards.',
+              link: '#',
             },
           ].map((feature, index) => (
-            <div key={index} className="card p-6 bg-white hover:shadow-lg transition-shadow">
+            <Link href={feature.link} key={index} className="card p-6 bg-white hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold mb-3 text-primary">{feature.title}</h3>
               <p className="text-gray-600">{feature.description}</p>
-            </div>
+            </Link>
+          ))}
+        </div>
+
+        <h2 className="text-2xl font-bold mb-6 text-center">Operational Modules</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {[
+            {
+              title: 'Shipping Management',
+              description: 'Manage shipping operations, carriers, and track packages.',
+              link: '/shipping',
+            },
+            {
+              title: 'Shipping Providers',
+              description: 'Configure and manage your shipping carrier integrations.',
+              link: '/shipping/providers',
+            },
+            {
+              title: 'Tracking & Delivery',
+              description: 'Track packages and manage delivery updates.',
+              link: '/shipping/track',
+            },
+          ].map((module, index) => (
+            <Link href={module.link} key={index} className="card p-6 bg-white hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-semibold mb-3 text-primary">{module.title}</h3>
+              <p className="text-gray-600">{module.description}</p>
+            </Link>
           ))}
         </div>
 

@@ -94,6 +94,26 @@ export const endpoints = {
     inventory: '/reports/inventory',
     customers: '/reports/customers',
   },
+  shipping: {
+    list: '/shipping/all',
+    getById: (id: number) => `/shipping/${id}`,
+    getByOrderId: (orderId: number) => `/shipping/order/${orderId}`,
+    create: '/shipping',
+    update: (id: number) => `/shipping/${id}`,
+    delete: (id: number) => `/shipping/${id}`,
+    updateStatus: (id: number) => `/shipping/status/${id}`,
+    track: (trackingNumber: string, carrier?: string) => 
+      `/shipping/track/${trackingNumber}${carrier ? `/${carrier}` : ''}`,
+    calculateRates: '/shipping/calculate-rates',
+    providers: {
+      list: '/shipping/providers/all',
+      getById: (id: number) => `/shipping/providers/${id}`,
+      create: '/shipping/providers',
+      update: (id: number) => `/shipping/providers/${id}`,
+      delete: (id: number) => `/shipping/providers/${id}`,
+      setDefault: (id: number) => `/shipping/providers/set-default/${id}`,
+    },
+  },
 };
 
 // Types for API requests
@@ -158,4 +178,88 @@ export const authService = {
   verifyToken: () => makeRequest('get', endpoints.auth.verifyToken),
 };
 
-export default api; 
+export default api;
+
+// Shipping service types
+export interface ShippingProvider {
+  id: number;
+  name: string;
+  apiKey?: string;
+  isActive: boolean;
+  isDefault: boolean;
+  settings?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Shipping {
+  id: number;
+  orderId: number;
+  status: string;
+  trackingNumber?: string;
+  carrier?: string;
+  estimatedDelivery?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  shippingCost: number;
+  shippingProviderId?: number;
+  recipientName: string;
+  recipientPhone: string;
+  address: string;
+  city: string;
+  state?: string;
+  country: string;
+  postalCode: string;
+  shippingProvider?: ShippingProvider;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShippingRateRequest {
+  weight: number;
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  fromPostalCode: string;
+  toPostalCode: string;
+  fromCountry: string;
+  toCountry: string;
+  shippingProviderId?: number;
+}
+
+export interface ShippingRate {
+  provider: string;
+  service: string;
+  rate: number;
+  currency: string;
+  estimatedDays: number;
+}
+
+// Shipping service
+export const shippingService = {
+  // Shipping records
+  getAll: () => makeRequest<Shipping[]>('get', endpoints.shipping.list),
+  getById: (id: number) => makeRequest<Shipping>('get', endpoints.shipping.getById(id)),
+  getByOrderId: (orderId: number) => makeRequest<Shipping>('get', endpoints.shipping.getByOrderId(orderId)),
+  create: (data: Partial<Shipping>) => makeRequest<Shipping>('post', endpoints.shipping.create, data),
+  update: (id: number, data: Partial<Shipping>) => makeRequest<Shipping>('put', endpoints.shipping.update(id), data),
+  delete: (id: number) => makeRequest('delete', endpoints.shipping.delete(id)),
+  updateStatus: (id: number, status: string) => 
+    makeRequest<Shipping>('patch', endpoints.shipping.updateStatus(id), { status }),
+  track: (trackingNumber: string, carrier?: string) => 
+    makeRequest('get', endpoints.shipping.track(trackingNumber, carrier)),
+  calculateRates: (data: ShippingRateRequest) => 
+    makeRequest<ShippingRate[]>('post', endpoints.shipping.calculateRates, data),
+  
+  // Shipping providers
+  getAllProviders: () => makeRequest<ShippingProvider[]>('get', endpoints.shipping.providers.list),
+  getProviderById: (id: number) => makeRequest<ShippingProvider>('get', endpoints.shipping.providers.getById(id)),
+  createProvider: (data: Partial<ShippingProvider>) => 
+    makeRequest<ShippingProvider>('post', endpoints.shipping.providers.create, data),
+  updateProvider: (id: number, data: Partial<ShippingProvider>) => 
+    makeRequest<ShippingProvider>('put', endpoints.shipping.providers.update(id), data),
+  deleteProvider: (id: number) => makeRequest('delete', endpoints.shipping.providers.delete(id)),
+  setDefaultProvider: (id: number) => makeRequest<ShippingProvider>('patch', endpoints.shipping.providers.setDefault(id)),
+}; 
