@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Customer, CustomerType, CustomerLoyaltyTier, CustomerAddress } from '../models/customer.model';
+import { Customer, CustomerType, CustomerLoyaltyTier, CustomerAddress, AddressType } from '../models/customer.model';
 import { User } from '../models/user.model';
 import { Order } from '../models/order.model';
 
@@ -158,7 +158,7 @@ export const createCustomer = async (req: Request, res: Response) => {
       preferences,
       notes,
       marketingConsent: marketingConsent || false,
-      loyaltyTier: CustomerLoyaltyTier.BRONZE,
+      loyaltyTier: CustomerLoyaltyTier.STANDARD,
       loyaltyPoints: 0,
       lastContactDate: new Date(),
       lifetimeValue: 0
@@ -350,30 +350,35 @@ export const updateCustomerLoyalty = async (req: Request, res: Response) => {
   }
 };
 
-// Add customer address
+// Add a new address to customer
 export const addCustomerAddress = async (req: Request, res: Response) => {
   try {
     const customerId = parseInt(req.params.id);
-    
+    const { type, street, city, state, postalCode, country, isDefault } = req.body;
+
     if (isNaN(customerId)) {
       return res.status(400).json({ message: 'Invalid customer ID' });
     }
 
-    const { street, city, state, postalCode, country, isDefault } = req.body;
-
     // Validate required fields
-    if (!street || !city || !postalCode || !country) {
-      return res.status(400).json({ message: 'Street, city, postal code, and country are required' });
+    if (!street || !city || !state || !postalCode || !country || !type) {
+      return res.status(400).json({ message: 'All address fields are required' });
+    }
+
+    // Validate address type
+    if (!Object.values(AddressType).includes(type)) {
+      return res.status(400).json({ 
+        message: 'Invalid address type. Must be one of: ' + Object.values(AddressType).join(', ')
+      });
     }
 
     const customer = await Customer.findByPk(customerId);
-    
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
 
-    // Create the new address
     const newAddress: CustomerAddress = {
+      type: type as AddressType,
       street,
       city,
       state,
@@ -382,18 +387,15 @@ export const addCustomerAddress = async (req: Request, res: Response) => {
       isDefault: isDefault || false
     };
 
-    // Get current addresses and update
+    // If this is the first address or marked as default, update other addresses
     const currentAddresses = [...customer.addresses];
-    
-    // If new address is default, remove default from other addresses
-    if (newAddress.isDefault) {
+    if (newAddress.isDefault || currentAddresses.length === 0) {
       currentAddresses.forEach(addr => addr.isDefault = false);
+      newAddress.isDefault = true;
     }
 
-    // Add the new address
     currentAddresses.push(newAddress);
 
-    // Update customer with new addresses
     await customer.update({ addresses: currentAddresses });
 
     return res.status(200).json({
@@ -401,59 +403,61 @@ export const addCustomerAddress = async (req: Request, res: Response) => {
       addresses: currentAddresses
     });
   } catch (error) {
-    console.error(`Error adding address for customer ID ${req.params.id}:`, error);
+    console.error('Error adding customer address:', error);
     return res.status(500).json({
-      message: 'Server error while adding customer address',
+      message: 'Server error while adding address',
       error: (error as Error).message
     });
   }
 };
 
-// Update customer address
+// Update a customer address
 export const updateCustomerAddress = async (req: Request, res: Response) => {
   try {
     const customerId = parseInt(req.params.id);
     const addressIndex = parseInt(req.params.addressIndex);
-    
+    const { type, street, city, state, postalCode, country, isDefault } = req.body;
+
     if (isNaN(customerId) || isNaN(addressIndex)) {
       return res.status(400).json({ message: 'Invalid customer ID or address index' });
     }
 
-    const { street, city, state, postalCode, country, isDefault } = req.body;
+    // Validate address type if provided
+    if (type && !Object.values(AddressType).includes(type)) {
+      return res.status(400).json({ 
+        message: 'Invalid address type. Must be one of: ' + Object.values(AddressType).join(', ')
+      });
+    }
 
     const customer = await Customer.findByPk(customerId);
-    
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
 
-    // Get current addresses
     const addresses = [...customer.addresses];
-    
     if (addressIndex < 0 || addressIndex >= addresses.length) {
       return res.status(404).json({ message: 'Address not found' });
     }
 
-    // Update the address
     addresses[addressIndex] = {
+      type: type as AddressType || addresses[addressIndex].type,
       street: street || addresses[addressIndex].street,
       city: city || addresses[addressIndex].city,
-      state: state !== undefined ? state : addresses[addressIndex].state,
+      state: state || addresses[addressIndex].state,
       postalCode: postalCode || addresses[addressIndex].postalCode,
       country: country || addresses[addressIndex].country,
-      isDefault: isDefault !== undefined ? isDefault : addresses[addressIndex].isDefault
+      isDefault: isDefault || addresses[addressIndex].isDefault
     };
 
-    // If this address is now default, remove default from others
-    if (addresses[addressIndex].isDefault) {
-      addresses.forEach((addr, i) => {
-        if (i !== addressIndex) {
+    // If marked as default, update other addresses
+    if (isDefault) {
+      addresses.forEach((addr, idx) => {
+        if (idx !== addressIndex) {
           addr.isDefault = false;
         }
       });
     }
 
-    // Update customer with modified addresses
     await customer.update({ addresses });
 
     return res.status(200).json({
@@ -461,9 +465,9 @@ export const updateCustomerAddress = async (req: Request, res: Response) => {
       addresses
     });
   } catch (error) {
-    console.error(`Error updating address for customer ID ${req.params.id}:`, error);
+    console.error('Error updating customer address:', error);
     return res.status(500).json({
-      message: 'Server error while updating customer address',
+      message: 'Server error while updating address',
       error: (error as Error).message
     });
   }

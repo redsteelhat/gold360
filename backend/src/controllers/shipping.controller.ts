@@ -19,7 +19,7 @@ class ShippingController {
   /**
    * Get all shipping records
    */
-  public async getAllShippingRecords(req: Request, res: Response): Promise<Response> {
+  public async getAllShippingRecords(_req: Request, res: Response): Promise<Response> {
     try {
       const shippingRecords = await Shipping.findAll({
         include: [{ model: Order }],
@@ -252,7 +252,7 @@ class ShippingController {
   /**
    * Get all shipping providers
    */
-  public async getAllShippingProviders(req: Request, res: Response): Promise<Response> {
+  public async getAllShippingProviders(_req: Request, res: Response): Promise<Response> {
     try {
       const providers = await ShippingProvider.findAll();
       return res.status(200).json({ success: true, data: providers });
@@ -461,7 +461,7 @@ class ShippingController {
    */
   public async trackShipment(req: Request, res: Response): Promise<Response> {
     try {
-      const { trackingNumber, carrier } = req.params;
+      const { trackingNumber } = req.params;
 
       // Find the shipping record with this tracking number
       const shipping = await Shipping.findOne({
@@ -522,9 +522,6 @@ class ShippingController {
     try {
       const {
         weight,
-        dimensions,
-        fromZipCode,
-        toZipCode,
         serviceType,
       } = req.body;
 

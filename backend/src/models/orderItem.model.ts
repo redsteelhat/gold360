@@ -1,99 +1,97 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { Order } from './order.model';
-import { Product } from './product.model';
 
 @Table({
   tableName: 'order_items',
   timestamps: true,
+  underscored: true
 })
 export class OrderItem extends Model {
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,
-    autoIncrement: true,
+    autoIncrement: true
   })
   id!: number;
 
   @ForeignKey(() => Order)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: false
   })
   orderId!: number;
 
-  @BelongsTo(() => Order)
-  order!: Order;
-
-  @ForeignKey(() => Product)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: false
   })
   productId!: number;
 
-  @BelongsTo(() => Product)
-  product!: Product;
+  @Column({
+    type: DataType.STRING(255),
+    allowNull: false
+  })
+  productName!: string;
+
+  @Column({
+    type: DataType.STRING(100),
+    allowNull: true
+  })
+  sku?: string;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
-    defaultValue: 1,
+    defaultValue: 1
   })
   quantity!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: false,
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false
   })
   unitPrice!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: true,
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
   })
-  discountedPrice?: number;
+  discount!: number;
 
   @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: false,
-    defaultValue: 0.00,
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false
   })
   subtotal!: number;
 
   @Column({
-    type: DataType.JSONB,
-    allowNull: true,
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
   })
-  productData?: object;
+  tax!: number;
+
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false
+  })
+  total!: number;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true,
+    allowNull: true
   })
   notes?: string;
 
   @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
+    type: DataType.JSONB,
+    allowNull: true
   })
-  isRefunded!: boolean;
+  customizations?: object;
 
-  @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: true,
-  })
-  refundAmount?: number;
+  @BelongsTo(() => Order)
+  order!: Order;
+}
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  refundedAt?: Date;
-
-  // Helper method to calculate subtotal
-  calculateSubtotal(): number {
-    const price = this.discountedPrice || this.unitPrice;
-    return price * this.quantity;
-  }
-} 
+export default OrderItem; 

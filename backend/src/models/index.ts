@@ -18,20 +18,11 @@ import { MarketingCampaignRecipient } from './marketingCampaignRecipient.model';
 import { MarketingTemplate } from './marketingTemplate.model';
 import { SocialMediaAccount } from './socialMediaAccount.model';
 import { SocialMediaPost } from './socialMediaPost.model';
-import { Task, associateTask } from './task.model';
-import { Shift, associateShift } from './shift.model';
-import { Note, associateNote } from './note.model';
-import Shipping from './shipping.model';
-import ShippingProvider from './shippingProvider.model';
-
-// Associate models
-export const associateModels = () => {
-  // Call association methods from model files
-  associateTask();
-  associateShift();
-  associateNote();
-  // Add other association calls as needed
-};
+import { Task } from './task.model';
+import { Shift } from './shift.model';
+import { Note } from './note.model';
+import { Shipping } from './shipping.model';
+import { ShippingProvider } from './shippingProvider.model';
 
 // Export models
 export {
