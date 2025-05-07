@@ -1,6 +1,5 @@
 import express from 'express';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
-import { UserRole } from '../models/user.model';
+import { authenticate } from '../middlewares/auth.middleware';
 import * as taskController from '../controllers/task.controller';
 import * as shiftController from '../controllers/shift.controller';
 import * as noteController from '../controllers/note.controller';

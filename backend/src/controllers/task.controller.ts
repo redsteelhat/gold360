@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { Task, TaskStatus, TaskPriority } from '../models/task.model';
 import { User } from '../models/user.model';
 import { Op } from 'sequelize';
-import winston from 'winston';
 
 // Create a fallback logger in case the module is not found
 const logger = (() => {
@@ -276,7 +275,6 @@ export const updateTask = async (req: Request, res: Response) => {
   try {
     const taskId = Number(req.params.id);
     const updateData = req.body;
-    const userId = req.user?.id;
 
     // Find the task
     const task = await Task.findByPk(taskId);

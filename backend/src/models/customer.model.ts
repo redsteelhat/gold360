@@ -1,82 +1,82 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Default } from 'sequelize-typescript';
-import { User } from './user.model';
+import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
 import { Order } from './order.model';
 
+// Customer type enum
 export enum CustomerType {
   INDIVIDUAL = 'individual',
   BUSINESS = 'business'
 }
 
+// Customer loyalty tier enum
 export enum CustomerLoyaltyTier {
-  BRONZE = 'bronze',
+  STANDARD = 'standard',
   SILVER = 'silver',
   GOLD = 'gold',
   PLATINUM = 'platinum'
 }
 
+// Address type enum
+export enum AddressType {
+  BILLING = 'billing',
+  SHIPPING = 'shipping',
+  BOTH = 'both'
+}
+
+// Customer address interface
 export interface CustomerAddress {
+  type: AddressType;
   street: string;
   city: string;
-  state?: string;
-  postalCode: string;
+  state: string;
   country: string;
+  postalCode: string;
   isDefault: boolean;
 }
 
 @Table({
   tableName: 'customers',
   timestamps: true,
-  paranoid: true
+  underscored: true
 })
 export class Customer extends Model {
-  @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false
+    primaryKey: true,
+    autoIncrement: true
   })
-  userId!: number;
-
-  @BelongsTo(() => User)
-  user!: User;
+  id!: number;
 
   @Column({
     type: DataType.ENUM(...Object.values(CustomerType)),
-    defaultValue: CustomerType.INDIVIDUAL,
-    allowNull: false
+    allowNull: false,
+    defaultValue: CustomerType.INDIVIDUAL
   })
   type!: CustomerType;
 
   @Column({
-    type: DataType.STRING,
-    allowNull: true
+    type: DataType.STRING(100),
+    allowNull: false
   })
-  companyName?: string;
+  firstName!: string;
 
   @Column({
-    type: DataType.STRING,
-    allowNull: true
+    type: DataType.STRING(100),
+    allowNull: false
   })
-  taxId?: string;
+  lastName!: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(100),
+    allowNull: false,
+    unique: true
+  })
+  email!: string;
+
+  @Column({
+    type: DataType.STRING(20),
     allowNull: true
   })
   phoneNumber?: string;
-
-  @Column({
-    type: DataType.ENUM(...Object.values(CustomerLoyaltyTier)),
-    defaultValue: CustomerLoyaltyTier.BRONZE,
-    allowNull: false
-  })
-  loyaltyTier!: CustomerLoyaltyTier;
-
-  @Default(0)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false
-  })
-  loyaltyPoints!: number;
 
   @Column({
     type: DataType.JSONB,
@@ -89,7 +89,19 @@ export class Customer extends Model {
     type: DataType.JSONB,
     allowNull: true
   })
-  preferences?: any;
+  preferences?: object;
+
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: true
+  })
+  taxId?: string;
+
+  @Column({
+    type: DataType.STRING(100),
+    allowNull: true
+  })
+  companyName?: string;
 
   @Column({
     type: DataType.TEXT,
@@ -97,27 +109,61 @@ export class Customer extends Model {
   })
   notes?: string;
 
-  @Default(false)
   @Column({
     type: DataType.BOOLEAN,
-    allowNull: false
+    allowNull: false,
+    defaultValue: true
+  })
+  isActive!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
   })
   marketingConsent!: boolean;
 
-  @Default(new Date())
   @Column({
-    type: DataType.DATE,
-    allowNull: false
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0
   })
-  lastContactDate!: Date;
+  loyaltyPoints!: number;
 
-  @Default(0)
   @Column({
-    type: DataType.FLOAT,
-    allowNull: false
+    type: DataType.ENUM(...Object.values(CustomerLoyaltyTier)),
+    allowNull: false,
+    defaultValue: CustomerLoyaltyTier.STANDARD
+  })
+  loyaltyTier!: CustomerLoyaltyTier;
+
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
   })
   lifetimeValue!: number;
 
+  @Column({
+    type: DataType.DATE,
+    allowNull: true
+  })
+  lastPurchaseDate?: Date;
+
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
+  })
+  totalPurchases!: number;
+
   @HasMany(() => Order)
   orders!: Order[];
-} 
+
+  // Helper to get full name
+  get fullName(): string {
+    return `${this.firstName} ${this.lastName}`;
+  }
+}
+
+export default Customer; 

@@ -1,5 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
 import { User } from './user.model';
 
 // Task priority levels
@@ -30,167 +29,131 @@ export enum TaskCategory {
   OTHER = 'other'
 }
 
-// Task attributes interface
-export interface TaskAttributes {
-  id: number;
-  title: string;
-  description: string;
-  dueDate: Date;
-  priority: TaskPriority;
-  status: TaskStatus;
-  category: TaskCategory;
-  assignedToId: number | null;
-  assignedById: number;
-  completedAt: Date | null;
-  reminderDate: Date | null;
-  recurrence: string | null;
-  parentTaskId: number | null;
-  tags: string[];
-  attachments: string[];
-  notes: string;
-  createdAt: Date;
-  updatedAt: Date;
+@Table({
+  tableName: 'tasks',
+  timestamps: true,
+  underscored: true
+})
+export class Task extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  })
+  id!: number;
+
+  @Column({
+    type: DataType.STRING(255),
+    allowNull: false
+  })
+  title!: string;
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: false
+  })
+  description!: string;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: false
+  })
+  dueDate!: Date;
+
+  @Column({
+    type: DataType.ENUM(...Object.values(TaskPriority)),
+    allowNull: false,
+    defaultValue: TaskPriority.MEDIUM
+  })
+  priority!: TaskPriority;
+
+  @Column({
+    type: DataType.ENUM(...Object.values(TaskStatus)),
+    allowNull: false,
+    defaultValue: TaskStatus.PENDING
+  })
+  status!: TaskStatus;
+
+  @Column({
+    type: DataType.ENUM(...Object.values(TaskCategory)),
+    allowNull: false,
+    defaultValue: TaskCategory.OTHER
+  })
+  category!: TaskCategory;
+
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
+  })
+  assignedToId!: number | null;
+
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false
+  })
+  assignedById!: number;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true
+  })
+  completedAt!: Date | null;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true
+  })
+  reminderDate!: Date | null;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+    comment: 'Cron expression format for recurring tasks'
+  })
+  recurrence!: string | null;
+
+  @ForeignKey(() => Task)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
+  })
+  parentTaskId!: number | null;
+
+  @Column({
+    type: DataType.ARRAY(DataType.STRING),
+    allowNull: false,
+    defaultValue: []
+  })
+  tags!: string[];
+
+  @Column({
+    type: DataType.ARRAY(DataType.STRING),
+    allowNull: false,
+    defaultValue: [],
+    comment: 'Array of file paths or URLs'
+  })
+  attachments!: string[];
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: false,
+    defaultValue: ''
+  })
+  notes!: string;
+
+  @BelongsTo(() => User, 'assignedToId')
+  assignedTo!: User;
+
+  @BelongsTo(() => User, 'assignedById')
+  assignedBy!: User;
+
+  @BelongsTo(() => Task, 'parentTaskId')
+  parentTask!: Task;
+
+  @HasMany(() => Task, 'parentTaskId')
+  subtasks!: Task[];
 }
-
-// Task creation attributes interface (optional fields for creation)
-export interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'status' | 'completedAt' | 'tags' | 'attachments' | 'notes' | 'createdAt' | 'updatedAt'> {}
-
-// Task model class definition
-export class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
-  public id!: number;
-  public title!: string;
-  public description!: string;
-  public dueDate!: Date;
-  public priority!: TaskPriority;
-  public status!: TaskStatus;
-  public category!: TaskCategory;
-  public assignedToId!: number | null;
-  public assignedById!: number;
-  public completedAt!: Date | null;
-  public reminderDate!: Date | null;
-  public recurrence!: string | null;
-  public parentTaskId!: number | null;
-  public tags!: string[];
-  public attachments!: string[];
-  public notes!: string;
-  
-  // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-}
-
-// Initialize Task model
-Task.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    title: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    dueDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    priority: {
-      type: DataTypes.ENUM(...Object.values(TaskPriority)),
-      allowNull: false,
-      defaultValue: TaskPriority.MEDIUM,
-    },
-    status: {
-      type: DataTypes.ENUM(...Object.values(TaskStatus)),
-      allowNull: false,
-      defaultValue: TaskStatus.PENDING,
-    },
-    category: {
-      type: DataTypes.ENUM(...Object.values(TaskCategory)),
-      allowNull: false,
-      defaultValue: TaskCategory.OTHER,
-    },
-    assignedToId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Users',
-        key: 'id',
-      },
-    },
-    assignedById: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id',
-      },
-    },
-    completedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    reminderDate: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    recurrence: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      comment: 'Cron expression format for recurring tasks',
-    },
-    parentTaskId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Tasks',
-        key: 'id',
-      },
-    },
-    tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: false,
-      defaultValue: [],
-    },
-    attachments: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: false, 
-      defaultValue: [],
-      comment: 'Array of file paths or URLs',
-    },
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      defaultValue: '',
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'Tasks',
-    timestamps: true,
-  }
-);
-
-// Define the associations
-export const associateTask = () => {
-  Task.belongsTo(User, { as: 'assignedTo', foreignKey: 'assignedToId' });
-  Task.belongsTo(User, { as: 'assignedBy', foreignKey: 'assignedById' });
-  Task.belongsTo(Task, { as: 'parentTask', foreignKey: 'parentTaskId' });
-  Task.hasMany(Task, { as: 'subtasks', foreignKey: 'parentTaskId' });
-};
 
 export default Task; 

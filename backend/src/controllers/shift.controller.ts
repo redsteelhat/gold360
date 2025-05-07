@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Shift, ShiftStatus, ShiftType } from '../models/shift.model';
+import { Shift, ShiftStatus } from '../models/shift.model';
 import { User, UserRole } from '../models/user.model';
 import { Op } from 'sequelize';
 import { logger } from '../utils/logger';

@@ -1,5 +1,14 @@
 import { Sequelize } from 'sequelize-typescript';
 import dotenv from 'dotenv';
+import { User } from '../models/user.model';
+import { Task } from '../models/task.model';
+import { Shipping } from '../models/shipping.model';
+import { ShippingProvider } from '../models/shippingProvider.model';
+import { Order } from '../models/order.model';
+import { Customer } from '../models/customer.model';
+import { OrderItem } from '../models/orderItem.model';
+import { Shift } from '../models/shift.model';
+import { Note } from '../models/note.model';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +39,20 @@ const sequelize = new Sequelize({
     timestamps: true,
     underscored: true,
   },
+  models: [
+    // Independent models first
+    User,
+    ShippingProvider,
+    Customer,
+    
+    // Models with dependencies
+    Task,      // depends on User
+    Shift,     // depends on User
+    Note,      // depends on User
+    Order,     // depends on Customer
+    OrderItem, // depends on Order
+    Shipping   // depends on Order
+  ],
 });
 
 // Connect to the database
@@ -41,10 +64,7 @@ export const connectDatabase = async (): Promise<void> => {
     // Sync all models
     if (process.env.NODE_ENV === 'development') {
       // In development, you might want to recreate tables
-      // await sequelize.sync({ force: true });
-      
-      // Or just update tables based on models
-      await sequelize.sync({ alter: true });
+      await sequelize.sync({ force: true });
       console.log('All models were synchronized successfully.');
     } else {
       // In production, only sync (no force/alter)
