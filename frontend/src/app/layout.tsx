@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
+import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: 'Gold360 - Complete Jewelry Business Platform',
@@ -16,9 +18,13 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
       </head>
       <body>
-        {children}
+        <Providers>
+          <ServiceWorkerRegistration />
+          {children}
+        </Providers>
       </body>
     </html>
   );
